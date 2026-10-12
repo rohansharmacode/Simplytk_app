@@ -85,6 +85,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "c508456c-f08f-428b-85e4-aa696d44a809"
+      }
+    },
+    "owner": "sparkier"
   }
 }
