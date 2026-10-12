@@ -111,7 +111,8 @@ npx expo prebuild --platform android
 cd android && ./gradlew assembleRelease
 ```
 
-The APK is signed with a debug key: fine for testing, not for the Play Store.
+The APK lands in `android/app/build/outputs/apk/release/` and is signed with a debug
+key: fine for installing on test phones, not for the Play Store.
 
 The bundle ID and package name are `com.simplytk.app`. Change them in `app.json` before
 the first store upload if the stores should list something else.
