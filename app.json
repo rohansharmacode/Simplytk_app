@@ -1,0 +1,89 @@
+{
+  "expo": {
+    "name": "simplytk",
+    "slug": "simplytk",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "simplytk",
+    "userInterfaceStyle": "automatic",
+    "backgroundColor": "#F6F7FA",
+    "platforms": [
+      "ios",
+      "android"
+    ],
+    "ios": {
+      "bundleIdentifier": "com.simplytk.app",
+      "supportsTablet": false,
+      "associatedDomains": [
+        "applinks:simplytk.com"
+      ],
+      "infoPlist": {
+        "NSCameraUsageDescription": "simplytk uses your camera to record your answers in mock interviews.",
+        "NSMicrophoneUsageDescription": "simplytk uses your microphone to record your answers in mock interviews.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "com.simplytk.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#2B54E8",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+      },
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
+      ],
+      "blockedPermissions": [
+        "android.permission.SYSTEM_ALERT_WINDOW"
+      ],
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "simplytk.com"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ],
+      "predictiveBackGestureEnabled": false
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#F6F7FA",
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 96,
+          "dark": {
+            "backgroundColor": "#12141A",
+            "image": "./assets/images/splash-icon.png"
+          }
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/notification-icon.png",
+          "color": "#2B54E8",
+          "defaultChannel": "default"
+        }
+      ],
+      "expo-font"
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    }
+  }
+}
