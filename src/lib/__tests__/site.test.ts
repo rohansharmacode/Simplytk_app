@@ -30,6 +30,8 @@ describe('classifyUrl', () => {
     // Lookalike hosts must not count as simplytk or Stripe.
     ['https://simplytk.com.evil.example/', 'browser'],
     ['https://notstripe.com/', 'browser'],
+    ['https://box.com/', 'browser'],
+    ['https://notlinkedin.com/', 'browser'],
   ])('sends %s to the in-app browser', (url, expected) => {
     expect(classifyUrl(url)).toBe(expected);
   });
@@ -41,6 +43,12 @@ describe('classifyUrl', () => {
     ['https://chat.whatsapp.com/AbCdEf', 'system'],
     ['https://apps.apple.com/app/id1', 'system'],
     ['whatsapp://send?text=hi', 'system'],
+    ['webcal://simplytk.com/calendar.ics', 'system'],
+    ['https://www.instagram.com/simplytk', 'system'],
+    ['https://www.linkedin.com/in/tanuj', 'system'],
+    ['https://www.tiktok.com/@simplytk', 'system'],
+    ['https://www.youtube.com/@simplytk', 'system'],
+    ['https://x.com/simplytk', 'system'],
   ])('hands %s to the OS', (url, expected) => {
     expect(classifyUrl(url)).toBe(expected);
   });

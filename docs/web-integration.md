@@ -22,6 +22,11 @@ html.simplytk-native-app .mobile-tab-bar { display: none; }
 html.simplytk-native-app body { padding-bottom: 0; }
 ```
 
+Downloads made from a blob or data URL (`<a download>` clicked from script, as the
+add-to-calendar, cover letter and share card buttons do) are handed to the app, which
+offers them through the share sheet. `navigator.clipboard.writeText` falls back to the
+system clipboard if the WebView refuses it. Neither needs changes on the website.
+
 ## 2. Push alerts
 
 Alerts for new openings and deadlines are the main reason to install the app. The app

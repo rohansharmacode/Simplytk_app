@@ -3,6 +3,8 @@ import { Linking, Platform, Share, type ShareContent } from 'react-native';
 
 import type { LinkAction } from './site';
 
+const BRAND_BLUE = '#2B54E8';
+
 // iOS can report a target="_blank" click both as a navigation and as a new window;
 // don't open the same link twice.
 let lastOpened = { url: '', at: 0 };
@@ -16,7 +18,7 @@ export async function openOutside(url: string, action: Extract<LinkAction, 'brow
   const isWeb = /^https?:/i.test(url);
   try {
     if (action === 'browser') {
-      await WebBrowser.openBrowserAsync(url, { dismissButtonStyle: 'close' });
+      await WebBrowser.openBrowserAsync(url, { dismissButtonStyle: 'close', controlsColor: BRAND_BLUE });
       return;
     }
     await Linking.openURL(url);

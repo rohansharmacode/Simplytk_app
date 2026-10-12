@@ -1,7 +1,8 @@
+import * as Clipboard from 'expo-clipboard';
 import Constants from 'expo-constants';
 import { useFocusEffect } from 'expo-router';
-import { useCallback, useImperativeHandle, useRef, useState, type Ref } from 'react';
-import { BackHandler, Platform, StyleSheet, View } from 'react-native';
+import { useCallback, useEffect, useImperativeHandle, useRef, useState, type Ref } from 'react';
+import { AppState, BackHandler, Platform, StyleSheet, View } from 'react-native';
 import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
 import type {
@@ -13,9 +14,17 @@ import type {
 } from 'react-native-webview/lib/WebViewTypes';
 
 import { LoadError } from '@/components/load-error';
+import { useKeyboardOverlap } from '@/hooks/use-keyboard-overlap';
 import { usePalette } from '@/hooks/use-palette';
-import { getSiteState, updateSiteState } from '@/lib/app-state';
-import { bridgeScript, navigateScript, parseBridgeMessage, replyScript } from '@/lib/bridge';
+import { getSiteState, markFirstPageLoaded, updateSiteState } from '@/lib/app-state';
+import {
+  bridgeScript,
+  navigateScript,
+  parseBridgeMessage,
+  replyScript,
+  scrollToTopOrGoScript,
+} from '@/lib/bridge';
+import { shareFile } from '@/lib/files';
 import { openOutside, shareLink } from '@/lib/open';
 import { requestPushToken } from '@/lib/push';
 import {
@@ -39,6 +48,8 @@ const BRIDGE = bridgeScript({
 export type SiteWebViewHandle = {
   /** Show a site path, e.g. from a deep link or notification. */
   navigate: (path: string) => void;
+  /** Tab tapped again: scroll to the top, or if already there, go to `path`. */
+  scrollToTopOrGo: (path: string) => void;
 };
 
 type Props = {
@@ -58,6 +69,8 @@ type Props = {
 export function SiteWebView({ initialPath, insetTop, onTitleChange, onUrlChange, ref }: Props) {
   const palette = usePalette();
   const webRef = useRef<WebView>(null);
+  const containerRef = useRef<View>(null);
+  const keyboardOverlap = useKeyboardOverlap(containerRef);
 
   const [source, setSource] = useState(() => ({ uri: siteUrl(initialPath) }));
   // Bumped to remount the WebView after a failed load or a crashed web process.
@@ -91,6 +104,10 @@ export function SiteWebView({ initialPath, insetTop, onTitleChange, onUrlChange,
         } else {
           remount(url);
         }
+      },
+      scrollToTopOrGo(path: string) {
+        if (failedUrl.current) return;
+        webRef.current?.injectJavaScript(scrollToTopOrGoScript(siteUrl(path)));
       },
     }),
     [remount],
@@ -155,6 +172,14 @@ export function SiteWebView({ initialPath, insetTop, onTitleChange, onUrlChange,
         case 'share':
           void shareLink(message);
           return;
+        case 'copy':
+          if (!fromSite) return;
+          void Clipboard.setStringAsync(message.text);
+          return;
+        case 'file':
+          if (!fromSite) return;
+          void shareFile(message);
+          return;
         case 'push:request':
           if (!fromSite) return;
           void requestPushToken().then((result) => {
@@ -183,16 +208,30 @@ export function SiteWebView({ initialPath, insetTop, onTitleChange, onUrlChange,
     setFailed(true);
   }, []);
 
+  const onLoadEnd = useCallback(() => {
+    hideSplash();
+    markFirstPageLoaded();
+  }, []);
+
   const retry = useCallback(() => {
     remount(failedUrl.current ?? currentUrl.current);
   }, [remount]);
+
+  // Coming back to the app (often after reconnecting) retries a page that failed to load.
+  useEffect(() => {
+    if (!failed) return;
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') retry();
+    });
+    return () => subscription.remove();
+  }, [failed, retry]);
 
   const edges: Edge[] = insetTop ? ['top', 'bottom'] : ['bottom'];
   const loading = progress > 0 && progress < 1 && !failed;
 
   return (
     <SafeAreaView edges={edges} style={[styles.fill, { backgroundColor: palette.background }]}>
-      <View style={styles.fill}>
+      <View ref={containerRef} style={[styles.fill, { paddingBottom: keyboardOverlap }]}>
         <WebView
           key={instance}
           ref={webRef}
@@ -209,7 +248,7 @@ export function SiteWebView({ initialPath, insetTop, onTitleChange, onUrlChange,
           onLoad={() => {
             hasLoaded.current = true;
           }}
-          onLoadEnd={hideSplash}
+          onLoadEnd={onLoadEnd}
           onError={onError}
           onContentProcessDidTerminate={() => webRef.current?.reload()}
           onRenderProcessGone={() => remount(currentUrl.current)}

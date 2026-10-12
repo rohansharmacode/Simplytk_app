@@ -1,5 +1,25 @@
 import { useSyncExternalStore } from 'react';
 
+function createStore<T extends object>(initial: T) {
+  let state = initial;
+  const listeners = new Set<() => void>();
+  return {
+    get: () => state,
+    update(patch: Partial<T>) {
+      const next = { ...state, ...patch };
+      if ((Object.keys(next) as (keyof T)[]).every((key) => next[key] === state[key])) return;
+      state = next;
+      listeners.forEach((listener) => listener());
+    },
+    subscribe(listener: () => void) {
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+      };
+    },
+  };
+}
+
 /**
  * State the WebViews report about the site, shared across tabs. Each tab has its own
  * WebView, so when one of them signs in or switches theme the others need to know.
@@ -11,27 +31,22 @@ export type SiteState = {
   signedIn: boolean | null;
 };
 
-let state: SiteState = { dark: null, signedIn: null };
-const listeners = new Set<() => void>();
+const siteStore = createStore<SiteState>({ dark: null, signedIn: null });
 
-export function getSiteState(): SiteState {
-  return state;
-}
-
-export function updateSiteState(patch: Partial<SiteState>) {
-  const next = { ...state, ...patch };
-  if (next.dark === state.dark && next.signedIn === state.signedIn) return;
-  state = next;
-  listeners.forEach((listener) => listener());
-}
-
-function subscribe(listener: () => void) {
-  listeners.add(listener);
-  return () => {
-    listeners.delete(listener);
-  };
-}
+export const getSiteState = siteStore.get;
+export const updateSiteState = siteStore.update;
 
 export function useSiteState(): SiteState {
-  return useSyncExternalStore(subscribe, getSiteState);
+  return useSyncExternalStore(siteStore.subscribe, siteStore.get);
+}
+
+/** Set once the first page has finished loading, so other tabs can load in the background. */
+const startupStore = createStore({ firstPageLoaded: false });
+
+export function markFirstPageLoaded() {
+  startupStore.update({ firstPageLoaded: true });
+}
+
+export function useFirstPageLoaded(): boolean {
+  return useSyncExternalStore(startupStore.subscribe, () => startupStore.get().firstPageLoaded);
 }

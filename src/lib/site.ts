@@ -16,15 +16,22 @@ const IN_APP_HOST_SUFFIXES = [
   'challenges.cloudflare.com',
 ];
 
-/** Hosts owned by another app; the OS hands these to WhatsApp, the App Store, etc. */
-const SYSTEM_HOSTS = [
+/**
+ * Hosts owned by another app (and their subdomains). The OS hands these to WhatsApp, the
+ * App Store or the social app if it's installed, and to the browser otherwise.
+ */
+const SYSTEM_HOST_SUFFIXES = [
   'wa.me',
-  'api.whatsapp.com',
-  'chat.whatsapp.com',
   'whatsapp.com',
-  'www.whatsapp.com',
   'apps.apple.com',
   'play.google.com',
+  'instagram.com',
+  'linkedin.com',
+  'tiktok.com',
+  'youtube.com',
+  'youtu.be',
+  'x.com',
+  'twitter.com',
 ];
 
 /** Schemes that the WebView handles itself (blank iframes, generated downloads). */
@@ -74,7 +81,7 @@ export function classifyUrl(url: string): LinkAction {
   const host = parsed.hostname.toLowerCase();
   if (SITE_HOSTS.includes(host)) return 'webview';
   if (IN_APP_HOST_SUFFIXES.some((suffix) => hostMatches(host, suffix))) return 'webview';
-  if (SYSTEM_HOSTS.includes(host)) return 'system';
+  if (SYSTEM_HOST_SUFFIXES.some((suffix) => hostMatches(host, suffix))) return 'system';
   return 'browser';
 }
 

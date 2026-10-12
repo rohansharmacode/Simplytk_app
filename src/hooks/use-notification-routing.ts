@@ -28,14 +28,18 @@ export function openHref(href: string) {
  */
 export function useNotificationRouting() {
   useEffect(() => {
-    function handle(response: Notifications.NotificationResponse | null) {
-      if (!response) return;
-      const href = hrefForNotificationData(response.notification.request.content.data);
+    function handle(response: Notifications.NotificationResponse | null | undefined) {
+      // Payloads come from the server; don't trust their shape.
+      const href = hrefForNotificationData(response?.notification?.request?.content?.data);
       if (href) openHref(href);
     }
 
-    handle(Notifications.getLastNotificationResponse());
-    Notifications.clearLastNotificationResponse();
+    // The tap that launched the app. This runs in the root layout, so a notifications
+    // module that's unavailable (or misbehaving) must not take the app down with it.
+    try {
+      handle(Notifications.getLastNotificationResponse());
+      Notifications.clearLastNotificationResponse();
+    } catch {}
 
     const subscription = Notifications.addNotificationResponseReceivedListener(handle);
     return () => subscription.remove();

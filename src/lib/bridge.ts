@@ -9,13 +9,15 @@
  *       | { status: 'denied' }
  *       | { status: 'unavailable', reason: string }
  *     >,
- *     share({ title, text, url }): Promise<void>,
+ *     share({ title, text, url, files }): Promise<void>,
  *   }
  *
  * plus `simplytk-native-app` and `simplytk-native-ios|android` classes on <html> for
  * app-only CSS, a native-backed `navigator.share` where the WebView lacks one (Android),
- * and the site's own mobile tab bar hidden (APP_CSS). The app listens for `state`
- * messages to keep its tab bar theme and the other tabs' sign-in state in step.
+ * and the site's own mobile tab bar hidden (APP_CSS). On simplytk pages, blob/data
+ * downloads and failed clipboard writes are handed to the app, which WebViews can't do
+ * themselves. The app listens for `state` messages to keep its tab bar theme and the
+ * other tabs' sign-in state in step.
  *
  * docs/web-integration.md describes this from the website's side.
  */
@@ -23,7 +25,22 @@
 export type BridgeMessage =
   | { type: 'state'; dark: boolean; signedIn: boolean; title: string }
   | { type: 'share'; title?: string; text?: string; url?: string }
-  | { type: 'push:request'; id: number };
+  | { type: 'push:request'; id: number }
+  | { type: 'copy'; text: string }
+  | FileMessage;
+
+/** A file the page tried to download or share, which WebViews can't do themselves. */
+export type FileMessage = {
+  type: 'file';
+  action: 'save' | 'share';
+  filename: string;
+  mimeType: string;
+  base64: string;
+  text?: string;
+};
+
+/** Larger files are left to the WebView rather than copied through the bridge. */
+export const MAX_FILE_BYTES = 20 * 1024 * 1024;
 
 /**
  * simplytk.com's mobile tab bar (`<nav aria-label="Primary" class="fixed … bottom-0">`) and
@@ -77,8 +94,33 @@ export function bridgeScript(config: BridgeConfig): string {
     },
   });
 
+  // Files go to the app as base64; it saves them and opens the share sheet.
+  function sendFile(blob, filename, action, text) {
+    if (!blob || blob.size > ${MAX_FILE_BYTES}) return false;
+    var reader = new FileReader();
+    reader.onload = function () {
+      var result = String(reader.result);
+      post({
+        type: 'file',
+        action: action,
+        filename: filename,
+        mimeType: blob.type || 'application/octet-stream',
+        base64: result.slice(result.indexOf(',') + 1),
+        text: text,
+      });
+    };
+    reader.readAsDataURL(blob);
+    return true;
+  }
+
   function share(data) {
     data = data || {};
+    var file = data.files && data.files[0];
+    if (file) {
+      return sendFile(file, file.name || 'shared-file', 'share', data.text)
+        ? Promise.resolve()
+        : Promise.reject(new Error('File too large to share'));
+    }
     post({ type: 'share', title: data.title, text: data.text, url: data.url });
     return Promise.resolve();
   }
@@ -93,7 +135,9 @@ export function bridgeScript(config: BridgeConfig): string {
   if (typeof navigator.share !== 'function') {
     try {
       navigator.share = share;
-      navigator.canShare = function (data) { return !!data && !data.files; };
+      navigator.canShare = function (data) {
+        return !!data && !!(data.url || data.text || data.title || (data.files && data.files.length));
+      };
     } catch (e) {}
   }
 
@@ -114,6 +158,78 @@ export function bridgeScript(config: BridgeConfig): string {
       if (addStyle()) waitForHead.disconnect();
     });
     waitForHead.observe(document, { childList: true, subtree: true });
+  }
+
+  // WebViews can't save blob: or data: downloads, which the site uses for its
+  // add-to-calendar (.ics), cover letter (.txt) and share card (.png) buttons. Keep each
+  // object URL's Blob so a download click can hand the file to the app, even when the
+  // page revokes the URL straight after clicking.
+  var blobs = {};
+  var createObjectURL = URL.createObjectURL;
+  var revokeObjectURL = URL.revokeObjectURL;
+  URL.createObjectURL = function (object) {
+    var url = createObjectURL.apply(URL, arguments);
+    if (object instanceof Blob) blobs[url] = object;
+    return url;
+  };
+  URL.revokeObjectURL = function (url) {
+    delete blobs[url];
+    return revokeObjectURL.apply(URL, arguments);
+  };
+
+  function interceptDownload(anchor) {
+    if (!anchor.hasAttribute('download')) return false;
+    var href = anchor.href || '';
+    var filename = anchor.getAttribute('download') || 'download';
+    if (blobs[href]) return sendFile(blobs[href], filename, 'save');
+    if (href.indexOf('data:') === 0) {
+      fetch(href)
+        .then(function (response) { return response.blob(); })
+        .then(function (blob) { sendFile(blob, filename, 'save'); })
+        .catch(function () {});
+      return true;
+    }
+    return false;
+  }
+
+  // Downloads are usually a detached <a download> clicked from script...
+  var anchorClick = HTMLAnchorElement.prototype.click;
+  HTMLAnchorElement.prototype.click = function () {
+    if (interceptDownload(this)) return;
+    return anchorClick.apply(this, arguments);
+  };
+  // ...or a real link the student taps.
+  document.addEventListener('click', function (event) {
+    var target = event.target;
+    var anchor = target && target.closest ? target.closest('a[download]') : null;
+    if (anchor && interceptDownload(anchor)) event.preventDefault();
+  }, true);
+
+  // Copy buttons: WebViews may refuse navigator.clipboard (Android especially, or when
+  // the copy happens after an await). Fall back to the system clipboard via the app.
+  function nativeCopy(text) {
+    post({ type: 'copy', text: String(text) });
+    return Promise.resolve();
+  }
+  var clipboard = navigator.clipboard;
+  if (clipboard && typeof clipboard.writeText === 'function') {
+    var writeText = clipboard.writeText.bind(clipboard);
+    try {
+      clipboard.writeText = function (text) {
+        try {
+          return writeText(text).catch(function () { return nativeCopy(text); });
+        } catch (e) {
+          return nativeCopy(text);
+        }
+      };
+    } catch (e) {}
+  } else {
+    try {
+      Object.defineProperty(navigator, 'clipboard', {
+        configurable: true,
+        value: { writeText: nativeCopy },
+      });
+    } catch (e) {}
   }
 
   var last = '';
@@ -168,6 +284,22 @@ export function navigateScript(url: string): string {
   return `window.location.assign(${JSON.stringify(url)}); true;`;
 }
 
+/**
+ * Script for re-tapping the current tab: scroll to the top like native lists do, and when
+ * already at the top go back to the tab's start page (`url`).
+ */
+export function scrollToTopOrGoScript(url: string): string {
+  return `(function () {
+  var target = new URL(${JSON.stringify(url)});
+  if (window.scrollY > 0) {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  } else if (location.pathname !== target.pathname) {
+    location.assign(target.href);
+  }
+})();
+true;`;
+}
+
 function optionalString(value: unknown): string | undefined {
   return typeof value === 'string' && value.length > 0 ? value : undefined;
 }
@@ -201,6 +333,18 @@ export function parseBridgeMessage(raw: string): BridgeMessage | null {
     case 'push:request':
       if (typeof message.id !== 'number' || !Number.isInteger(message.id)) return null;
       return { type: 'push:request', id: message.id };
+    case 'copy':
+      if (typeof message.text !== 'string') return null;
+      return { type: 'copy', text: message.text };
+    case 'file': {
+      const { action, filename, mimeType, base64 } = message;
+      if (action !== 'save' && action !== 'share') return null;
+      if (typeof filename !== 'string' || typeof mimeType !== 'string') return null;
+      if (typeof base64 !== 'string' || !base64 || base64.length > (MAX_FILE_BYTES * 4) / 3 + 4) {
+        return null;
+      }
+      return { type: 'file', action, filename, mimeType, base64, text: optionalString(message.text) };
+    }
     default:
       return null;
   }
