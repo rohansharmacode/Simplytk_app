@@ -16,13 +16,12 @@ describe('tabForSitePath', () => {
     ['/companies/jane-street', 'tracker'],
     ['/live', 'tracker'],
     ['/expected-openings', 'tracker'],
-    ['/explore', 'explore'],
     ['/progress', 'progress'],
   ])('%s belongs to %s', (path, tab) => {
     expect(tabForSitePath(path)).toBe(tab);
   });
 
-  it.each(['/cv-rater', '/daily', '/livestream', '/dashboards', '/'])('%s has no tab', (path) => {
+  it.each(['/cv-rater', '/daily', '/explore', '/livestream', '/dashboards', '/'])('%s has no tab', (path) => {
     expect(tabForSitePath(path)).toBeNull();
   });
 });
@@ -38,6 +37,14 @@ describe('hrefForSitePath', () => {
   it('opens everything else as a page', () => {
     expect(hrefForSitePath('/cv-rater')).toBe(page('/cv-rater'));
     expect(hrefForSitePath('spring-week-playbook')).toBe(page('/spring-week-playbook'));
+    expect(hrefForSitePath('/explore')).toBe(page('/explore'));
+  });
+
+  it('opens drills the app has natively in the app', () => {
+    expect(hrefForSitePath('/mental-maths')).toBe('/play/mental-maths');
+    expect(hrefForSitePath('/fast-fractions?ref=email')).toBe('/play/fast-fractions');
+    // Not ported yet: the site's page.
+    expect(hrefForSitePath('/sequences')).toBe(page('/sequences'));
   });
 
   it('sends the bare domain to the home tab', () => {
@@ -46,6 +53,11 @@ describe('hrefForSitePath', () => {
 });
 
 describe('hrefForIncomingUrl', () => {
+  it('maps universal links to native drills', () => {
+    expect(hrefForIncomingUrl('https://simplytk.com/mental-maths')).toBe('/play/mental-maths');
+    expect(hrefForIncomingUrl('simplytk://fast-fractions')).toBe('/play/fast-fractions');
+  });
+
   it('maps universal links', () => {
     expect(hrefForIncomingUrl('https://simplytk.com/internship-tracker/spring-weeks')).toBe(
       '/tracker?path=%2Finternship-tracker%2Fspring-weeks',
@@ -68,6 +80,8 @@ describe('hrefForIncomingUrl', () => {
 
   it('passes app routes through untouched', () => {
     expect(hrefForIncomingUrl('/more')).toBe('/more');
+    expect(hrefForIncomingUrl('/drills')).toBe('/drills');
+    expect(hrefForIncomingUrl('/play/mental-maths')).toBe('/play/mental-maths');
     expect(hrefForIncomingUrl('/progress')).toBe('/progress');
     expect(hrefForIncomingUrl('/tracker?path=%2Flive')).toBe('/tracker?path=%2Flive');
     expect(hrefForIncomingUrl(page('/pricing'))).toBe(page('/pricing'));

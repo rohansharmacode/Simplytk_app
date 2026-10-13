@@ -2,12 +2,13 @@ This is an Expo/React Native mobile application. Prioritize mobile-first pattern
 
 ## This project
 
-The simplytk app hosts https://simplytk.com in WebViews inside native tabs. README.md explains
-the structure. Before changing things, know these rules:
+The simplytk app is moving from hosting https://simplytk.com in WebViews to native screens.
+Home, Tracker and Progress are still WebViews; the Drills tab, the More menu and the first
+drills are native. README.md explains the structure. Before changing things, know these rules:
 
 - Pure logic lives in `src/lib` and has unit tests in `src/lib/__tests__`. Keep it that way:
-  link classification (`site.ts`), deep-link mapping (`routes.ts`) and the injected bridge
-  script (`bridge.ts`).
+  link classification (`site.ts`), deep-link mapping (`routes.ts`), the injected bridge
+  script (`bridge.ts`) and the drills' catalogue and question generators (`drills/`).
 - The bridge script is a string run inside web pages. Write it in ES5-style JavaScript and
   test it through `bridge.test.ts`, which executes it in a sandbox.
 - `docs/web-integration.md` is the contract with the website. Update it when the bridge,

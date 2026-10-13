@@ -2,7 +2,10 @@ import { NativeTabs } from 'expo-router/unstable-native-tabs';
 
 import { usePalette } from '@/hooks/use-palette';
 
-/** Mirrors simplytk.com's own mobile tab bar, which the app hides (see src/lib/bridge.ts). */
+/**
+ * Follows simplytk.com's own mobile tab bar, which the app hides (see src/lib/bridge.ts),
+ * with the native Drills tab in place of Explore.
+ */
 export default function TabsLayout() {
   const palette = usePalette();
 
@@ -22,14 +25,14 @@ export default function TabsLayout() {
         <NativeTabs.Trigger.Icon sf={{ default: 'house', selected: 'house.fill' }} md="home" />
       </NativeTabs.Trigger>
 
-      <NativeTabs.Trigger name="explore" contentStyle={{ backgroundColor: palette.background }}>
-        <NativeTabs.Trigger.Label>Explore</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf={{ default: 'safari', selected: 'safari.fill' }} md="explore" />
-      </NativeTabs.Trigger>
-
       <NativeTabs.Trigger name="tracker" contentStyle={{ backgroundColor: palette.background }}>
         <NativeTabs.Trigger.Label>Tracker</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf="calendar" md="calendar_month" />
+      </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name="drills" contentStyle={{ backgroundColor: palette.background }}>
+        <NativeTabs.Trigger.Label>Drills</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf={{ default: 'stopwatch', selected: 'stopwatch.fill' }} md="timer" />
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="progress" contentStyle={{ backgroundColor: palette.background }}>

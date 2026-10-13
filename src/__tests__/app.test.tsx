@@ -4,6 +4,8 @@ import * as Clipboard from 'expo-clipboard';
 import * as Notifications from 'expo-notifications';
 import { AppState, BackHandler, Platform, type AppStateStatus } from 'react-native';
 
+import { NATIVE_DRILLS } from '@/components/drills/registry';
+import { DRILL_GROUPS } from '@/lib/drills/catalogue';
 import { shareFile } from '@/lib/files';
 import { openOutside } from '@/lib/open';
 import { mountedWebViews, resetWebViews, type MockWebView } from '@/test/mock-webview';
@@ -22,6 +24,24 @@ jest.mock('expo-notifications', () => ({
   clearLastNotificationResponse: jest.fn(),
   addNotificationResponseReceivedListener: jest.fn(() => ({ remove: jest.fn() })),
 }));
+jest.mock('expo-haptics', () => ({
+  impactAsync: jest.fn(() => Promise.resolve()),
+  notificationAsync: jest.fn(() => Promise.resolve()),
+  performAndroidHapticsAsync: jest.fn(() => Promise.resolve()),
+  ImpactFeedbackStyle: { Light: 'light' },
+  NotificationFeedbackType: { Success: 'success', Error: 'error' },
+  AndroidHaptics: { Confirm: 'confirm', Reject: 'reject' },
+}));
+jest.mock('expo-sqlite/kv-store', () => {
+  const store = new Map<string, string>();
+  return {
+    __esModule: true,
+    default: {
+      getItemSync: (key: string) => store.get(key) ?? null,
+      setItemSync: (key: string, value: string) => void store.set(key, value),
+    },
+  };
+});
 jest.mock('@/lib/push', () => ({
   requestPushToken: jest.fn(() => Promise.resolve({ status: 'granted', token: 'ExponentPushToken[t]' })),
 }));
@@ -110,8 +130,8 @@ describe('launch', () => {
 
   it('loads other tabs when first opened', async () => {
     await launch();
-    await go('/explore');
-    expect(uris()).toContain('https://simplytk.com/explore?source=app');
+    await go('/progress');
+    expect(uris()).toContain('https://simplytk.com/progress?source=app');
   });
 });
 
@@ -183,6 +203,70 @@ describe('More tab', () => {
   it('links to account settings, where accounts can be deleted', async () => {
     await launch('/more');
     expect(screen.getByText('Account settings')).toBeTruthy();
+  });
+});
+
+describe('Drills tab', () => {
+  it('opens drills that are not native yet on the site', async () => {
+    const { app } = await launch('/drills');
+    await press('Sequences');
+    expect(app.getPathname()).toBe('/page');
+    expect(app.getSearchParams()).toMatchObject({ path: '/sequences', title: 'Sequences' });
+  });
+
+  it('plays native drills in the app', async () => {
+    const { app } = await launch('/drills');
+    await press('Mental Maths');
+    expect(app.getPathname()).toBe('/play/mental-maths');
+    expect(screen.getByText('Start')).toBeTruthy();
+  });
+
+  it('opens native drills from simplytk.com links', async () => {
+    const { app } = await launch('/play/fast-fractions');
+    expect(app.getPathname()).toBe('/play/fast-fractions');
+    expect(mountedWebViews()).toEqual([]);
+  });
+
+  it('has a game for every drill the catalogue marks native', () => {
+    const native = DRILL_GROUPS.flatMap((g) => g.drills).filter((d) => d.native).map((d) => d.slug);
+    expect(Object.keys(NATIVE_DRILLS).sort()).toEqual(native.sort());
+  });
+});
+
+describe('Mental Maths', () => {
+  beforeEach(() => jest.useFakeTimers());
+  afterEach(() => jest.useRealTimers());
+
+  /** The answer to the question on screen. */
+  function answer() {
+    const label = screen.getByLabelText(/^\d+ [+−×÷] \d+$/).props.accessibilityLabel as string;
+    const [left, op, right] = label.split(' ');
+    const [a, b] = [Number(left), Number(right)];
+    return String({ '+': a + b, '−': a - b, '×': a * b, '÷': a / b }[op]);
+  }
+
+  async function type(text: string) {
+    await act(async () => {
+      fireEvent.changeText(screen.getByLabelText('Answer'), text);
+    });
+  }
+
+  it('scores answers as they are typed and keeps the best when time runs out', async () => {
+    await launch('/play/mental-maths');
+    await press('30s');
+    await press('Start');
+
+    await type('1');
+    expect(screen.getByLabelText('Score').props.children).toBe(0);
+    await type(answer());
+    await type(answer());
+    expect(screen.getByLabelText('Score').props.children).toBe(2);
+    expect(screen.getByLabelText('Answer').props.value).toBe('');
+
+    await flush(31_000);
+    expect(screen.getByLabelText('Final score').props.children).toBe(2);
+    expect(screen.getByText('New personal best')).toBeTruthy();
+    expect(screen.getByText('Your best at this length: 2')).toBeTruthy();
   });
 });
 

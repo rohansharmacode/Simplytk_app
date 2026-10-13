@@ -4,22 +4,29 @@ The mobile app for [simplytk.com](https://simplytk.com): the live UK internship 
 week tracker, AI CV rater, aptitude drills and mentoring, with native tabs, push alerts,
 deep links and a share sheet.
 
-It is an [Expo](https://expo.dev) (React Native) app. Each tab hosts simplytk.com in a
-WebView, so every feature of the site is in the app from day one, and site deploys reach
-the app without an app update. Native code handles what a browser tab can't: the tab bar,
+It is an [Expo](https://expo.dev) (React Native) app on its way from wrapping the site to
+being fully native. Today the Home, Tracker and Progress tabs host simplytk.com in a
+WebView, so every feature of the site is in the app, and site deploys reach the app
+without an app update. The Drills tab and the More menu are native, and so are the first
+drills (Mental Maths and Fast Fractions). Native code also handles the tab bar,
 notifications, links into the app, sharing, and offline states.
+
+Next to go native: the tracker and your applications, then the AI tools. Those need a
+stable API on simplytk.com (or access to its Supabase project) to read and write data;
+the site's own server functions change on every deploy.
 
 ## What's in the app
 
 | Tab | Shows | Notes |
 | --- | --- | --- |
 | Home | `/dashboard` | The PWA's start page. Signed-out students get the sign-in screen. |
-| Explore | `/explore` | |
 | Tracker | `/internship-tracker` | Company pages, `/live` and `/expected-openings` deep-link here. |
+| Drills | Native list | All 35 drills from `/explore`. Native ones play in the app; the rest open their page. |
 | Progress | `/progress` | |
 | More | Native menu | AI tools, practice, mentoring, account settings, share, version. |
 
-The tabs match the site's own mobile tab bar, which the app hides so there is only one.
+The tabs follow the site's own mobile tab bar, which the app hides so there is only one,
+with Drills in place of Explore. Links to `/explore` still open the site's page.
 Tapping the open tab again scrolls to the top, and a second tap returns to the tab's start
 page. The Tracker tab loads in the background shortly after launch, so it opens instantly.
 Menu entries and links from outside the app open as a page pushed over the tabs, with
@@ -126,17 +133,23 @@ Before the first store submission, work through
 src/app/                 Screens (Expo Router: every file is a route)
   _layout.tsx            Root stack, theme, notification taps, splash
   (tabs)/_layout.tsx     Native tab bar
-  (tabs)/index.tsx …     WebView tabs: Home, Explore, Tracker, Progress
+  (tabs)/index.tsx …     WebView tabs: Home, Tracker, Progress
+  (tabs)/drills.tsx      Native drill list
   (tabs)/more.tsx        Native More menu
   page.tsx               Any simplytk.com page pushed over the tabs
+  play/[slug].tsx        A native drill
   +native-intent.tsx     Maps incoming links to the right tab or page
 src/components/
+  drills/                Native drills: drill-shell.tsx (clock, score, best) and one file
+                         per game; registry.ts lists them
   site-webview.tsx       The WebView: link rules, bridge, errors, back button
   tab-webview.tsx        Lazy-loads a tab's WebView and handles deep links into it
 src/hooks/
   use-keyboard-overlap.ts  Keeps typed-in fields above the Android keyboard
   use-notification-routing.ts  Opens the page a tapped notification links to
 src/lib/
+  drills/                Drill catalogue and question generators (pure, unit tested)
+  best-scores.ts         Personal bests, kept on the device
   site.ts                Origin, link classification, title cleanup
   routes.ts              Which tab owns which site section; deep-link mapping
   bridge.ts              Script injected into pages, and message parsing
@@ -151,5 +164,9 @@ Common changes:
 - **A tab's page:** `TAB_HOME` in `src/lib/routes.ts`.
 - **Which links open in the app:** `src/lib/site.ts`.
 - **The More menu:** `SECTIONS` in `src/app/(tabs)/more.tsx`.
+- **Porting a drill:** write the game in `src/components/drills/` on top of `DrillShell`,
+  add it to `registry.ts`, and set `native: true` on it in `src/lib/drills/catalogue.ts`.
+  Links to its simplytk.com page then open it in the app. The question ranges and clocks
+  of the two native drills are guesses until they're aligned with the site's code.
 - **Colours:** `src/constants/theme.ts`. These are converted from the site's CSS tokens,
   so change them together.

@@ -1,22 +1,22 @@
+import { nativeDrillForPath } from './drills/catalogue';
 import { sitePathFromUrl } from './site';
 
 /**
- * The WebView tabs mirror simplytk.com's own mobile tab bar (Home, Explore, Tracker,
- * Progress, More), which the app hides in favour of the native one.
+ * The tabs follow simplytk.com's own mobile tab bar (Home, Tracker, Progress, More), which
+ * the app hides in favour of the native one, with a native Drills tab in place of Explore.
+ * These are the tabs that show a site section in a WebView.
  */
-export type WebTab = 'index' | 'explore' | 'tracker' | 'progress';
+export type WebTab = 'index' | 'tracker' | 'progress';
 
 /** The site page each tab opens on. Home is the PWA manifest's start URL. */
 export const TAB_HOME: Record<WebTab, string> = {
   index: '/dashboard',
-  explore: '/explore',
   tracker: '/internship-tracker',
   progress: '/progress',
 };
 
 const TAB_ROUTE: Record<WebTab, string> = {
   index: '/',
-  explore: '/explore',
   tracker: '/tracker',
   progress: '/progress',
 };
@@ -24,7 +24,6 @@ const TAB_ROUTE: Record<WebTab, string> = {
 /** Site sections owned by each tab. Anything else opens as a pushed page over the tabs. */
 const TAB_SECTIONS: [prefix: string, tab: WebTab][] = [
   ['/dashboard', 'index'],
-  ['/explore', 'explore'],
   ['/internship-tracker', 'tracker'],
   ['/live', 'tracker'],
   ['/expected-openings', 'tracker'],
@@ -33,7 +32,12 @@ const TAB_SECTIONS: [prefix: string, tab: WebTab][] = [
 ];
 
 /** Routes that exist in the app itself (src/app). */
-const APP_ROUTES = ['/', '/explore', '/tracker', '/progress', '/more', '/page'];
+const APP_ROUTES = ['/', '/drills', '/tracker', '/progress', '/more', '/page'];
+
+function isAppRoute(pathname: string) {
+  const play = /^\/play\/([^/]+)$/.exec(pathname);
+  return APP_ROUTES.includes(pathname) || (play !== null && !!nativeDrillForPath(play[1]));
+}
 
 const SCHEME = 'simplytk:';
 
@@ -49,10 +53,15 @@ export function tabForSitePath(path: string): WebTab | null {
   return null;
 }
 
-/** App href that shows a simplytk.com path: inside its tab when one owns it, else as a page. */
+/**
+ * App href that shows a simplytk.com path: the native drill if the app has one, inside its
+ * tab when one owns it, else as a page.
+ */
 export function hrefForSitePath(path: string): string {
   const sitePath = path.startsWith('/') ? path : `/${path}`;
   if (pathnameOf(sitePath) === '/') return '/';
+  const drill = nativeDrillForPath(pathnameOf(sitePath));
+  if (drill) return `/play/${drill.slug}`;
   const tab = tabForSitePath(sitePath);
   const route = tab ? TAB_ROUTE[tab] : '/page';
   return `${route}?path=${encodeURIComponent(sitePath)}`;
@@ -81,7 +90,7 @@ export function hrefForIncomingUrl(input: string): string {
   }
   if (!path.startsWith('/')) return '/';
 
-  if (APP_ROUTES.includes(pathnameOf(path))) return path;
+  if (isAppRoute(pathnameOf(path))) return path;
   return hrefForSitePath(path);
 }
 

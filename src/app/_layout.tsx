@@ -59,6 +59,7 @@ export default function RootLayout() {
         }}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="page" options={{ title: '' }} />
+        <Stack.Screen name="play/[slug]" options={{ title: '' }} />
       </Stack>
     </ThemeProvider>
   );

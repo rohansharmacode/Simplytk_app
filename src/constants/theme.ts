@@ -1,6 +1,7 @@
 /**
  * Colours are converted from simplytk.com's CSS design tokens (oklch -> sRGB) so the
  * native chrome (tab bar, headers, the More screen) matches the web content it frames.
+ * `success` is the site's emerald-600 and `danger` its --destructive, used by the drills.
  */
 export const Colors = {
   light: {
@@ -12,6 +13,8 @@ export const Colors = {
     border: '#E2E5EC',
     tint: '#2B54E8',
     onTint: '#FFFFFF',
+    success: '#009966',
+    danger: '#D92D20',
   },
   dark: {
     background: '#12141A',
@@ -22,6 +25,8 @@ export const Colors = {
     border: '#2C3140',
     tint: '#7492FF',
     onTint: '#12141A',
+    success: '#47D49C',
+    danger: '#FF6467',
   },
 } as const;
 

@@ -70,8 +70,9 @@ await fetch('https://exp.host/--/api/v2/push/send', {
 ```
 
 Tracker pages (`/internship-tracker`, `/companies/…`, `/live`, `/expected-openings`) open
-in the Tracker tab, and `/dashboard/…` opens in Home. Any other page opens on top of the
-tabs. Remove a token when Expo's push receipt reports `DeviceNotRegistered`.
+in the Tracker tab, and `/dashboard/…` opens in Home. Drills the app plays natively
+(`/mental-maths`, `/fast-fractions`) open the native drill. Any other page opens on top of
+the tabs. Remove a token when Expo's push receipt reports `DeviceNotRegistered`.
 
 ## 3. Universal links
 
