@@ -1,8 +1,7 @@
 import { router, useFocusEffect } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { Fragment } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Radius, Spacing } from '@/constants/theme';
 import { usePalette } from '@/hooks/use-palette';
@@ -29,9 +28,6 @@ function open(row: Row | Drill) {
 
 export default function DrillsScreen() {
   const palette = usePalette();
-  const insets = useSafeAreaInsets();
-  // iOS insets the scroll view automatically; Android tabs only handle the bottom edge.
-  const topInset = Platform.OS === 'android' ? insets.top : 0;
 
   // Opened straight from a simplytk://drills link there's no page load to wait for.
   useFocusEffect(hideSplash);
@@ -41,7 +37,7 @@ export default function DrillsScreen() {
   return (
     <ScrollView
       style={{ backgroundColor: palette.background }}
-      contentContainerStyle={[styles.content, { paddingTop: topInset + Spacing.four }]}
+      contentContainerStyle={[styles.content, { paddingTop: Spacing.four }]}
       contentInsetAdjustmentBehavior="automatic">
       <View style={styles.header}>
         <Text style={[styles.title, { color: palette.text }]} accessibilityRole="header">

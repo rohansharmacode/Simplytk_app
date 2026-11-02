@@ -3,6 +3,8 @@ import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
+import { deletePushToken, savePushToken } from '@/lib/site-api';
+
 export type PushResult =
   | { status: 'granted'; token: string }
   | { status: 'denied' }
@@ -20,6 +22,37 @@ export function requestPushToken(): Promise<PushResult> {
     inFlight = null;
   });
   return inFlight;
+}
+
+/**
+ * Keep this device's token on the student's account so opening and deadline alerts reach
+ * it. With `ask` the OS prompt may appear (call it from a tap, such as the first star);
+ * without, it only refreshes a token the student already allowed. Never throws.
+ */
+export async function syncPushToken({ ask }: { ask: boolean }): Promise<PushResult> {
+  try {
+    if (!ask) {
+      const { status } = await Notifications.getPermissionsAsync();
+      if (status !== 'granted') return { status: 'denied' };
+    }
+    const result = await requestPushToken();
+    if (result.status === 'granted') {
+      await savePushToken(result.token, Platform.OS === 'ios' ? 'ios' : 'android');
+      lastSaved = result.token;
+    }
+    return result;
+  } catch (error) {
+    return { status: 'unavailable', reason: String(error) };
+  }
+}
+
+let lastSaved: string | null = null;
+
+/** On sign-out: stop this device getting the previous student's alerts. */
+export async function forgetPushToken() {
+  const token = lastSaved;
+  lastSaved = null;
+  if (token) await deletePushToken(token).catch(() => {});
 }
 
 async function register(): Promise<PushResult> {

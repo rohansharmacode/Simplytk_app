@@ -13,17 +13,21 @@ Notifications.setNotificationHandler({
   }),
 });
 
-/** Tab routes switch tabs; pages stack on top of whatever is showing. */
+const TAB_ROOTS = ['/', '/tracker', '/daily', '/ranks', '/more'];
+
+/** Tab routes switch tabs; everything else stacks on top of whatever is showing. */
 export function openHref(href: string) {
-  if (href.startsWith('/page')) {
-    router.push(href as Href);
-  } else {
+  const pathname = href.split(/[?#]/, 1)[0] || '/';
+  if (TAB_ROOTS.includes(pathname)) {
     router.navigate(href as Href);
+  } else {
+    router.push(href as Href);
   }
 }
 
 /**
- * Tapping a notification opens the page in its `data.url` (a simplytk.com URL or path),
+ * Tapping a notification opens what it is about: an opening (`data.jobId`) or a page
+ * (`data.url`, a simplytk.com URL or path),
  * both when the app is running and when the tap launched it.
  */
 export function useNotificationRouting() {

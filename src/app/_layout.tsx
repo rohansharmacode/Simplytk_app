@@ -6,6 +6,10 @@ import { useEffect } from 'react';
 import { Colors, type Scheme } from '@/constants/theme';
 import { useNotificationRouting } from '@/hooks/use-notification-routing';
 import { useScheme } from '@/hooks/use-palette';
+import { forgetPushToken, syncPushToken } from '@/lib/push';
+import { useSession } from '@/lib/session';
+import { clearStars, loadStars } from '@/lib/stars';
+import { clearDaily } from '@/lib/daily/store';
 // Importing this keeps the splash up until the first page has loaded.
 import { hideSplash } from '@/lib/splash';
 
@@ -34,7 +38,23 @@ export default function RootLayout() {
   const scheme = useScheme();
   const palette = Colors[scheme];
 
+  const session = useSession();
+  const userId = session?.user.id ?? null;
+
   useNotificationRouting();
+
+  // A new student: their stars, and this device's token on their account if they allowed
+  // notifications before. Signed out: nothing of the last student's stays on the device.
+  useEffect(() => {
+    if (userId) {
+      void loadStars();
+      void syncPushToken({ ask: false });
+    } else {
+      clearStars();
+      clearDaily();
+      void forgetPushToken();
+    }
+  }, [userId]);
 
   useEffect(() => {
     // Never leave the splash up if the network is slow; the page shows its own progress.
@@ -45,6 +65,10 @@ export default function RootLayout() {
   useEffect(() => {
     SystemUI.setBackgroundColorAsync(palette.background).catch(() => {});
   }, [palette.background]);
+
+  // The stored session is read before anything shows, so a signed-in student never sees
+  // the sign-in screen flash. The splash stays up meanwhile.
+  if (session === undefined) return null;
 
   return (
     <ThemeProvider value={navigationTheme(scheme)}>
@@ -57,9 +81,20 @@ export default function RootLayout() {
           headerBackButtonDisplayMode: 'minimal',
           contentStyle: { backgroundColor: palette.background },
         }}>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Protected guard={session === null}>
+          <Stack.Screen name="sign-in" options={{ headerShown: false }} />
+        </Stack.Protected>
+        <Stack.Protected guard={!!session}>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="opening/[id]" options={{ title: '' }} />
+          <Stack.Screen
+            name="challenge"
+            options={{ headerShown: false, presentation: 'fullScreenModal', gestureEnabled: false }}
+          />
+          <Stack.Screen name="drills" options={{ title: 'Drills' }} />
+          <Stack.Screen name="play/[slug]" options={{ title: '' }} />
+        </Stack.Protected>
         <Stack.Screen name="page" options={{ title: '' }} />
-        <Stack.Screen name="play/[slug]" options={{ title: '' }} />
       </Stack>
     </ThemeProvider>
   );

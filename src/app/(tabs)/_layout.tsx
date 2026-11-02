@@ -3,8 +3,8 @@ import { NativeTabs } from 'expo-router/unstable-native-tabs';
 import { usePalette } from '@/hooks/use-palette';
 
 /**
- * Follows simplytk.com's own mobile tab bar, which the app hides (see src/lib/bridge.ts),
- * with the native Drills tab in place of Explore.
+ * The app's five native tabs. Home, Tracker, Daily and Ranks are native screens; More
+ * lists everything else on simplytk.com, which opens in a web view.
  */
 export default function TabsLayout() {
   const palette = usePalette();
@@ -13,7 +13,7 @@ export default function TabsLayout() {
     <NativeTabs
       backgroundColor={palette.surface}
       tintColor={palette.tint}
-      indicatorColor={palette.muted}
+      indicatorColor={palette.tintSoft}
       iconColor={{ default: palette.textSecondary, selected: palette.tint }}
       labelStyle={{
         default: { color: palette.textSecondary },
@@ -27,17 +27,17 @@ export default function TabsLayout() {
 
       <NativeTabs.Trigger name="tracker" contentStyle={{ backgroundColor: palette.background }}>
         <NativeTabs.Trigger.Label>Tracker</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf="calendar" md="calendar_month" />
+        <NativeTabs.Trigger.Icon sf={{ default: 'star', selected: 'star.fill' }} md="star" />
       </NativeTabs.Trigger>
 
-      <NativeTabs.Trigger name="drills" contentStyle={{ backgroundColor: palette.background }}>
-        <NativeTabs.Trigger.Label>Drills</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf={{ default: 'stopwatch', selected: 'stopwatch.fill' }} md="timer" />
+      <NativeTabs.Trigger name="daily" contentStyle={{ backgroundColor: palette.background }}>
+        <NativeTabs.Trigger.Label>Daily</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf={{ default: 'flame', selected: 'flame.fill' }} md="local_fire_department" />
       </NativeTabs.Trigger>
 
-      <NativeTabs.Trigger name="progress" contentStyle={{ backgroundColor: palette.background }}>
-        <NativeTabs.Trigger.Label>Progress</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf="chart.line.uptrend.xyaxis" md="trending_up" />
+      <NativeTabs.Trigger name="ranks" contentStyle={{ backgroundColor: palette.background }}>
+        <NativeTabs.Trigger.Label>Ranks</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf={{ default: 'trophy', selected: 'trophy.fill' }} md="emoji_events" />
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="more" contentStyle={{ backgroundColor: palette.background }}>

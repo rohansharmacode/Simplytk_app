@@ -2,12 +2,13 @@ import Constants from 'expo-constants';
 import { router, useFocusEffect } from 'expo-router';
 import { SymbolView, type AndroidSymbol, type SFSymbol } from 'expo-symbols';
 import { Fragment } from 'react';
-import { Image, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Image, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Radius, Spacing } from '@/constants/theme';
 import { usePalette } from '@/hooks/use-palette';
 import { openOutside, shareLink } from '@/lib/open';
+import { signOut } from '@/lib/session';
 import { SITE_ORIGIN } from '@/lib/site';
 import { hideSplash } from '@/lib/splash';
 
@@ -44,9 +45,10 @@ const SECTIONS: Section[] = [
   {
     title: 'Practice',
     items: [
-      { label: 'Daily challenge', path: '/daily', icon: { ios: 'flame', android: 'local_fire_department' } },
+      { label: 'Drills', onPress: () => router.push('/drills'), icon: { ios: 'stopwatch', android: 'timer' } },
+      { label: 'My progress', path: '/progress', icon: { ios: 'chart.line.uptrend.xyaxis', android: 'trending_up' } },
+      { label: '1v1 challenge', path: '/1v1', icon: { ios: 'person.2.wave.2', android: 'sports_kabaddi' } },
       { label: 'Online assessment prep', path: '/oa-prep', icon: { ios: 'puzzlepiece', android: 'extension' } },
-      { label: 'Leaderboard', path: '/oa-leaderboard', icon: { ios: 'trophy', android: 'emoji_events' } },
       { label: 'Interview course', path: '/interview-course', icon: { ios: 'list.bullet.rectangle', android: 'quiz' } },
     ],
   },
@@ -78,6 +80,15 @@ const SECTIONS: Section[] = [
       { label: 'Leave a review', path: '/leave-a-review', icon: { ios: 'star', android: 'star' } },
       { label: 'Privacy', path: '/privacy', icon: { ios: 'hand.raised', android: 'privacy_tip' } },
       { label: 'Terms', path: '/terms', icon: { ios: 'doc.plaintext', android: 'gavel' } },
+      {
+        label: 'Sign out',
+        onPress: () =>
+          Alert.alert('Sign out?', 'Alerts stop on this phone until you sign in again.', [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Sign out', style: 'destructive', onPress: () => void signOut() },
+          ]),
+        icon: { ios: 'rectangle.portrait.and.arrow.right', android: 'logout' },
+      },
     ],
   },
 ];
