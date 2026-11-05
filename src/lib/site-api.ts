@@ -2,7 +2,7 @@ import { getSession } from '@/lib/session';
 import { SITE_ORIGIN } from '@/lib/site';
 
 /**
- * The website's app endpoints (docs/app-api.md). They wrap the same server code the site's
+ * The website's app endpoints (docs/app-api.md, and docs/native-app-api.md in the site's repo). They wrap the same server code the site's
  * own pages use, so a daily run, a streak or a league place is the same in both places.
  * Every call carries the student's Supabase access token.
  */
@@ -35,6 +35,27 @@ async function call<T>(method: 'GET' | 'POST' | 'DELETE', path: string, body?: u
     throw new Error(message);
   }
   return payload as T;
+}
+
+/**
+ * The phone's IANA zone. The site counts the daily challenge's day, the streak and the
+ * board periods in it (UTC without it), so a student abroad rolls over at their midnight.
+ */
+export function phoneTimeZone(): string | undefined {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/** `path` with `params` and the phone's zone as a query string. */
+export function withZone(path: string, params: Record<string, string> = {}): string {
+  const tz = phoneTimeZone();
+  const query = Object.entries(tz ? { ...params, tz } : params)
+    .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
+    .join('&');
+  return query ? `${path}?${query}` : path;
 }
 
 // ---- Daily challenge ---------------------------------------------------------------------
@@ -84,24 +105,27 @@ export type Streak = {
   freezesLeft: number;
 };
 
-export const getDaily = () => call<DailyState>('GET', '/api/app/daily');
+export const getDaily = () => call<DailyState>('GET', withZone('/api/app/daily'));
 
 export const submitDaily = (sessionId: string, answers: AnswerEvent[]) =>
-  call<DailyResult>('POST', '/api/app/daily', { sessionId, answers });
+  call<DailyResult>('POST', '/api/app/daily', { sessionId, answers, tz: phoneTimeZone() });
 
-export const getStreak = () => call<Streak>('GET', '/api/app/streak');
+export const getStreak = () => call<Streak>('GET', withZone('/api/app/streak'));
 
 // ---- Leaderboards ------------------------------------------------------------------------
 
+/** A row as the app draws it, for players and universities alike. */
 export type BoardEntry = {
   rank: number;
   username: string | null;
   isYou: boolean;
   university: string | null;
-  /** Daily: questions right. Overall: points across every ranked drill. */
-  score: number;
-  /** Daily only: time taken. */
+  /** Players: questions right (points on month and all-time). Universities: points. Null when unknown. */
+  score: number | null;
+  /** Players' daily runs only: time taken. */
   durationMs?: number;
+  /** A second line instead of the university, such as a university's member count. */
+  detail?: string;
 };
 
 export type Board = {
@@ -112,13 +136,36 @@ export type Board = {
 };
 
 export type DailyPeriod = 'today' | 'month' | 'all';
-export type OverallPeriod = 'all' | 'month';
 
-export const getDailyBoard = (period: DailyPeriod) =>
-  call<Board>('GET', `/api/app/leaderboard?board=daily&period=${period}`);
+/** The site's daily board, as GET /api/app/leaderboard returns it. Top 100. */
+export type SiteDailyBoard = {
+  day: string;
+  number: number;
+  entries: {
+    rank: number;
+    username: string | null;
+    score: number;
+    durationMs: number;
+    isYou: boolean;
+    university: string | null;
+    linkedin: string | null;
+    days?: number;
+  }[];
+  players: number;
+  yourRank: number | null;
+  /** Share of the period's players you beat or tied, 0 to 100. */
+  percentile: number | null;
+};
 
-export const getOverallBoard = (period: OverallPeriod) =>
-  call<Board>('GET', `/api/app/leaderboard?board=overall&period=${period}`);
+export type SiteUniversityBoard = {
+  entries: { rank: number; university: string; points: number; members: number; isYours: boolean }[];
+  yourUniversity: string | null;
+};
+
+export type Leaderboards = { period: DailyPeriod; board: SiteDailyBoard; universities: SiteUniversityBoard };
+
+export const getLeaderboards = (period: DailyPeriod) =>
+  call<Leaderboards>('GET', withZone('/api/app/leaderboard', { period }));
 
 export type LeagueTier = 'bronze' | 'silver' | 'gold' | 'platinum' | 'diamond';
 export type LeagueZone = 'promote' | 'stay' | 'demote';
@@ -147,6 +194,6 @@ export const getLeague = () => call<League>('GET', '/api/app/league');
 // ---- Push --------------------------------------------------------------------------------
 
 export const savePushToken = (token: string, platform: 'ios' | 'android') =>
-  call<{ ok: true }>('POST', '/api/app/push-tokens', { token, platform });
+  call<{ ok: true; provider: string }>('POST', '/api/app/push-token', { token, platform });
 
-export const deletePushToken = (token: string) => call<{ ok: true }>('DELETE', '/api/app/push-tokens', { token });
+export const deletePushToken = (token: string) => call<{ ok: true }>('DELETE', '/api/app/push-token', { token });

@@ -67,7 +67,7 @@ export default function ChallengeScreen() {
           web: error instanceof SiteApiMissing,
           reason:
             error instanceof SiteApiMissing
-              ? 'The app version of the daily challenge goes live with the next simplytk.com update. Until then, play it on the website.'
+              ? 'The app can’t load the daily challenge right now. You can play it on the website instead.'
               : error instanceof Error
                 ? error.message
                 : String(error),

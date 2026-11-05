@@ -27,7 +27,7 @@ the same in both places:
 | Home | Starred openings closing soonest, today's challenge with a Start button, the streak and the league place. |
 | Tracker | Every opening, filtered by firm, type, deadline and region. Star one for its deadline alerts. Tapping an opening shows it with its apply link. |
 | Daily | Today's challenge: the website's set of questions, a clock, a big number pad, and a review afterwards. |
-| Ranks | The daily board (today, month, all time), the overall board and the weekly league, with your own row pinned at the bottom. |
+| Ranks | The daily challenge’s player and university boards (today, month, all time) and the weekly league, with your own row pinned at the bottom. |
 | More | Drills, progress, 1v1, AI tools, mentoring, guides, account settings and sign out. Web pages open over the tabs. |
 
 The look follows Rohan's Orbit design system (mono kickers over two-tone titles, quiet
@@ -137,7 +137,7 @@ src/app/                 Screens (Expo Router: every file is a route)
   (tabs)/index.tsx       Home
   (tabs)/tracker.tsx     Openings, filters, starred
   (tabs)/daily.tsx       Today's challenge and the streak
-  (tabs)/ranks.tsx       Daily and overall boards, the weekly league
+  (tabs)/ranks.tsx       Player and university boards, the weekly league
   (tabs)/more.tsx        Everything else, as web pages
   opening/[id].tsx       One opening with its apply link
   challenge.tsx          Playing the daily challenge, full screen

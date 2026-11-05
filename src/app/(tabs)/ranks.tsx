@@ -6,26 +6,24 @@ import { Button, Chip, Empty, Loading, Screen, Title } from '@/components/ui';
 import { Spacing, Tabular } from '@/constants/theme';
 import { usePalette } from '@/hooks/use-palette';
 import { formatDuration } from '@/lib/daily/answers';
-import { pinnedRow, TIER_LABELS, timeLeft, zoneLabel } from '@/lib/leaderboard';
+import { pinnedRow, playerBoard, TIER_LABELS, timeLeft, universityBoard, zoneLabel } from '@/lib/leaderboard';
 import {
-  getDailyBoard,
+  getLeaderboards,
   getLeague,
-  getOverallBoard,
   SiteApiMissing,
   type Board,
   type BoardEntry,
   type DailyPeriod,
   type League,
   type LeagueZone,
-  type OverallPeriod,
 } from '@/lib/site-api';
 import { hideSplash } from '@/lib/splash';
 import { openWebPage } from '@/lib/web-pages';
 
-type Which = 'daily' | 'overall' | 'league';
+type Which = 'daily' | 'universities' | 'league';
 
 function boardParam(value: string | undefined): Which | null {
-  return value === 'daily' || value === 'overall' || value === 'league' ? value : null;
+  return value === 'daily' || value === 'universities' || value === 'league' ? value : null;
 }
 
 type Loaded =
@@ -41,21 +39,15 @@ const DAILY_PERIODS: [DailyPeriod, string][] = [
   ['all', 'All time'],
 ];
 
-const OVERALL_PERIODS: [OverallPeriod, string][] = [
-  ['all', 'All time'],
-  ['month', 'This month'],
-];
-
 /**
- * The daily board, the overall board across every ranked drill, and the weekly league.
+ * The daily challenge's player and university boards, and the weekly league.
  * Your own row is pinned to the bottom so you never scroll to find yourself.
  */
 export default function RanksScreen() {
   const palette = usePalette();
   const params = useLocalSearchParams<{ board?: string }>();
   const [which, setWhichState] = useState<Which>(() => boardParam(params.board) ?? 'daily');
-  const [dailyPeriod, setDailyPeriodState] = useState<DailyPeriod>('today');
-  const [overallPeriod, setOverallPeriodState] = useState<OverallPeriod>('all');
+  const [period, setPeriodState] = useState<DailyPeriod>('today');
   const [loaded, setLoaded] = useState<Loaded>({ kind: 'loading' });
   const [refreshing, setRefreshing] = useState(false);
 
@@ -75,12 +67,9 @@ export default function RanksScreen() {
     setWhichState(next);
     setLoaded({ kind: 'loading' });
   }
-  function setDailyPeriod(next: DailyPeriod) {
-    setDailyPeriodState(next);
-    setLoaded({ kind: 'loading' });
-  }
-  function setOverallPeriod(next: OverallPeriod) {
-    setOverallPeriodState(next);
+  function setPeriod(next: DailyPeriod) {
+    if (next === period) return;
+    setPeriodState(next);
     setLoaded({ kind: 'loading' });
   }
 
@@ -89,7 +78,8 @@ export default function RanksScreen() {
       if (which === 'league') {
         setLoaded({ kind: 'league', league: await getLeague() });
       } else {
-        const board = which === 'daily' ? await getDailyBoard(dailyPeriod) : await getOverallBoard(overallPeriod);
+        const boards = await getLeaderboards(period);
+        const board = which === 'daily' ? playerBoard(boards.board) : universityBoard(boards.universities);
         setLoaded({ kind: 'board', board });
       }
     } catch (error) {
@@ -99,7 +89,7 @@ export default function RanksScreen() {
           : { kind: 'error', message: error instanceof Error ? error.message : String(error) },
       );
     }
-  }, [which, dailyPeriod, overallPeriod]);
+  }, [which, period]);
 
   useFocusEffect(
     useCallback(() => {
@@ -122,7 +112,7 @@ export default function RanksScreen() {
     pinned || leagueYou ? (
       <View style={[styles.pinned, { backgroundColor: palette.surface, borderTopColor: palette.hair }]}>
         {pinned ? (
-          <Row entry={pinned} which={which} pinned />
+          <Row entry={pinned} which={which} showTime={period === 'today'} pinned />
         ) : leagueYou && loaded.kind === 'league' ? (
           <Row
             entry={{ rank: leagueYou.rank, username: leagueYou.username, isYou: true, university: null, score: leagueYou.points }}
@@ -140,21 +130,14 @@ export default function RanksScreen() {
 
       <View style={styles.chips}>
         <Chip label="Daily" selected={which === 'daily'} onPress={() => setWhich('daily')} />
-        <Chip label="Overall" selected={which === 'overall'} onPress={() => setWhich('overall')} />
+        <Chip label="Universities" selected={which === 'universities'} onPress={() => setWhich('universities')} />
         <Chip label="League" selected={which === 'league'} onPress={() => setWhich('league')} />
       </View>
 
-      {which === 'daily' ? (
+      {which !== 'league' ? (
         <View style={styles.chips}>
-          {DAILY_PERIODS.map(([period, label]) => (
-            <Chip key={period} label={label} selected={dailyPeriod === period} onPress={() => setDailyPeriod(period)} />
-          ))}
-        </View>
-      ) : null}
-      {which === 'overall' ? (
-        <View style={styles.chips}>
-          {OVERALL_PERIODS.map(([period, label]) => (
-            <Chip key={period} label={label} selected={overallPeriod === period} onPress={() => setOverallPeriod(period)} />
+          {DAILY_PERIODS.map(([value, label]) => (
+            <Chip key={value} label={label} selected={period === value} onPress={() => setPeriod(value)} />
           ))}
         </View>
       ) : null}
@@ -164,7 +147,7 @@ export default function RanksScreen() {
       {loaded.kind === 'missing' ? (
         <Empty
           title="See the leaderboards on the website"
-          body="The app version goes live with the next simplytk.com update."
+          body="The app can’t load them right now."
           action={
             <Button
               label="Open the leaderboard"
@@ -183,11 +166,18 @@ export default function RanksScreen() {
           <View style={[styles.table, { borderColor: palette.hair, backgroundColor: palette.surface }]}>
             {loaded.board.entries.map((entry, index) => (
               <View key={`${entry.rank}-${index}`} style={index > 0 && { borderTopColor: palette.hair, borderTopWidth: 1 }}>
-                <Row entry={entry} which={which} />
+                <Row entry={entry} which={which} showTime={period === 'today'} />
               </View>
             ))}
             <Text style={[styles.players, Tabular, { color: palette.faint }]}>
-              {loaded.board.players} {loaded.board.players === 1 ? 'player' : 'players'}
+              {loaded.board.players}{' '}
+              {which === 'universities'
+                ? loaded.board.players === 1
+                  ? 'university'
+                  : 'universities'
+                : loaded.board.players === 1
+                  ? 'player'
+                  : 'players'}
             </Text>
           </View>
         )
@@ -231,22 +221,27 @@ function Row({
   which,
   zone,
   tier,
+  showTime,
   pinned,
 }: {
   entry: BoardEntry;
   which: Which;
   zone?: LeagueZone;
   tier?: League['tier'];
+  /** Show each run's time: the today board, where the score is one run's. */
+  showTime?: boolean;
   pinned?: boolean;
 }) {
   const palette = usePalette();
   const zoneColor = zone === 'promote' ? palette.success : zone === 'demote' ? palette.danger : palette.textSecondary;
   const score =
-    which === 'daily'
-      ? `${entry.score}${entry.durationMs != null ? ` · ${formatDuration(entry.durationMs)}` : ''}`
-      : which === 'league'
-        ? `${entry.score} pts`
-        : `${entry.score}`;
+    entry.score == null
+      ? '–'
+      : which === 'daily'
+        ? `${entry.score}${showTime && entry.durationMs != null ? ` · ${formatDuration(entry.durationMs)}` : ''}`
+        : `${entry.score} pts`;
+  const name = pinned && which !== 'universities' ? 'You' : (entry.username ?? 'Anonymous');
+  const sub = entry.detail ?? entry.university;
   return (
     <View
       accessibilityLabel={`${pinned ? 'You: ' : ''}rank ${entry.rank}, ${entry.username ?? 'Anonymous'}, ${score}`}
@@ -254,14 +249,14 @@ function Row({
       <Text style={[styles.rank, Tabular, { color: entry.isYou ? palette.tint : palette.textSecondary }]}>{entry.rank}</Text>
       <View style={styles.name}>
         <Text style={[styles.username, { color: palette.text }]} numberOfLines={1}>
-          {pinned ? 'You' : (entry.username ?? 'Anonymous')}
-          {entry.isYou && !pinned ? ' (you)' : ''}
+          {name}
+          {entry.isYou && !pinned ? (which === 'universities' ? ' (yours)' : ' (you)') : ''}
         </Text>
         {zone && (pinned || zone !== 'stay') ? (
           <Text style={[styles.sub, { color: zoneColor }]}>{zoneLabel(zone, tier ?? 'bronze')}</Text>
-        ) : entry.university ? (
+        ) : sub ? (
           <Text style={[styles.sub, { color: palette.faint }]} numberOfLines={1}>
-            {entry.university}
+            {sub}
           </Text>
         ) : null}
       </View>

@@ -1,8 +1,52 @@
-import type { Board, BoardEntry, League, LeagueTier, LeagueZone } from '@/lib/site-api';
+import type {
+  Board,
+  BoardEntry,
+  League,
+  LeagueTier,
+  LeagueZone,
+  SiteDailyBoard,
+  SiteUniversityBoard,
+} from '@/lib/site-api';
 
 /** The row pinned under a board: the student's own place, wherever it is. */
 export function pinnedRow(board: Pick<Board, 'entries' | 'you'>): BoardEntry | null {
   return board.you ?? board.entries.find((entry) => entry.isYou) ?? null;
+}
+
+/**
+ * The site's player board as the app draws it. The site lists the top 100 and gives your
+ * rank and percentile; below the top 100 your pinned row has your rank and percentile only.
+ */
+export function playerBoard(board: SiteDailyBoard): Board {
+  const entries: BoardEntry[] = board.entries.map((entry) => ({
+    rank: entry.rank,
+    username: entry.username,
+    isYou: entry.isYou,
+    university: entry.university,
+    score: entry.score,
+    durationMs: entry.durationMs,
+  }));
+  const yours = entries.find((entry) => entry.isYou);
+  const beat = board.percentile != null ? `Ahead of ${board.percentile}% of players` : undefined;
+  const you: BoardEntry | null = yours
+    ? { ...yours, detail: beat }
+    : board.yourRank != null
+      ? { rank: board.yourRank, username: null, isYou: true, university: null, score: null, detail: beat }
+      : null;
+  return { entries, players: board.players, you };
+}
+
+/** The university board: each university's top five players' points. */
+export function universityBoard(board: SiteUniversityBoard): Board {
+  const entries: BoardEntry[] = board.entries.map((entry) => ({
+    rank: entry.rank,
+    username: entry.university,
+    isYou: entry.isYours,
+    university: null,
+    score: entry.points,
+    detail: entry.members === 1 ? '1 player' : `${entry.members} players`,
+  }));
+  return { entries, players: entries.length, you: entries.find((entry) => entry.isYou) ?? null };
 }
 
 export const TIER_LABELS: Record<LeagueTier, string> = {

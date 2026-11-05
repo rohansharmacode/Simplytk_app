@@ -31,10 +31,10 @@ system clipboard if the WebView refuses it. Neither needs changes on the website
 ## 2. Push alerts
 
 Alerts for starred openings are the main reason to install the app. The app asks for
-permission on the first star, registers its Expo push token with `POST /api/app/push-tokens`
+permission on the first star, registers its Expo push token with `POST /api/app/push-token`
 after every sign-in, and removes it on sign-out. The website stores tokens and sends the
 pushes through the [Expo push API](https://docs.expo.dev/push-notifications/sending-notifications/).
-[app-api.md](app-api.md#sending-what-changes-in-the-sites-push-code) has the details.
+[app-api.md](app-api.md#notifications) has the details.
 
 The notification payload's `data`:
 

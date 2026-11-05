@@ -75,8 +75,7 @@ jest.mock('@/lib/site-api', () => ({
   getDaily: jest.fn(),
   submitDaily: jest.fn(),
   getStreak: jest.fn(),
-  getDailyBoard: jest.fn(),
-  getOverallBoard: jest.fn(),
+  getLeaderboards: jest.fn(),
   getLeague: jest.fn(),
   savePushToken: jest.fn(() => Promise.resolve({ ok: true })),
   deletePushToken: jest.fn(() => Promise.resolve({ ok: true })),
@@ -182,11 +181,32 @@ beforeEach(() => {
   } as never);
   jest.mocked(SiteApi.getStreak).mockResolvedValue(STREAK as never);
   jest.mocked(SiteApi.getLeague).mockResolvedValue(LEAGUE as never);
-  jest.mocked(SiteApi.getDailyBoard).mockResolvedValue({
-    entries: [1, 2, 3].map((rank) => ({ rank, username: `top${rank}`, isYou: false, university: null, score: 20 - rank, durationMs: 60_000 })),
-    players: 812,
-    you: { rank: 140, username: 'rohan', isYou: true, university: null, score: 15, durationMs: 95_000 },
-  } as never);
+  jest.mocked(SiteApi.getLeaderboards).mockResolvedValue({
+    period: 'today',
+    board: {
+      day: '2026-11-05',
+      number: 213,
+      entries: [1, 2, 3].map((rank) => ({
+        rank,
+        username: `top${rank}`,
+        isYou: false,
+        university: null,
+        linkedin: null,
+        score: 20 - rank,
+        durationMs: 60_000,
+      })),
+      players: 812,
+      yourRank: 140,
+      percentile: 83,
+    },
+    universities: {
+      entries: [
+        { rank: 1, university: 'LSE', points: 96, members: 41, isYours: false },
+        { rank: 2, university: 'UCL', points: 90, members: 38, isYours: true },
+      ],
+      yourUniversity: 'UCL',
+    },
+  });
   jest.mocked(SiteApi.submitDaily).mockResolvedValue({ score: 2, total: 2, durationMs: 4000, detail: ['c', 'c'] });
 });
 
@@ -403,7 +423,15 @@ describe('Ranks', () => {
   it('pins your own place under the board', async () => {
     await launch('/ranks');
     expect(screen.getByText('top1')).toBeTruthy();
-    expect(screen.getByLabelText('You: rank 140, rohan, 15 · 1:35')).toBeTruthy();
+    expect(screen.getByLabelText('You: rank 140, Anonymous, –')).toBeTruthy();
+    expect(screen.getByText('Ahead of 83% of players')).toBeTruthy();
+    expect(SiteApi.getLeaderboards).toHaveBeenCalledWith('today');
+  });
+
+  it('switches to the university board', async () => {
+    await launch('/ranks?board=universities');
+    expect(screen.getByText('LSE')).toBeTruthy();
+    expect(screen.getByLabelText('You: rank 2, UCL, 90 pts')).toBeTruthy();
   });
 
   it('shows the weekly league from a link', async () => {

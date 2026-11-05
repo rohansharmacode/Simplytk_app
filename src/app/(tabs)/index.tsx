@@ -82,7 +82,7 @@ export default function HomeScreen() {
         {missing ? (
           <>
             <Text style={[styles.body, { color: palette.textSecondary }]}>
-              Today’s set is ready on the website. The app version goes live with the next simplytk.com update.
+              The app can’t load today’s set right now, but it’s ready on the website.
             </Text>
             <Button label="Play on simplytk.com" onPress={() => openWebPage('/daily', 'Daily challenge')} />
           </>

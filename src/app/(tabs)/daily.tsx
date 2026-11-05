@@ -45,7 +45,7 @@ export default function DailyScreen() {
       {missing ? (
         <Empty
           title="Play today’s challenge on the website"
-          body="The app version goes live with the next simplytk.com update. Your score counts the same either way."
+          body="The app can’t load it right now. Your score counts the same on the website."
           action={<Button label="Open the daily challenge" onPress={() => openWebPage('/daily', 'Daily challenge')} />}
         />
       ) : null}
