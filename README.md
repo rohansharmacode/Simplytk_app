@@ -12,8 +12,9 @@ opens in an in-app web view from the More tab.
 It talks to the same backend as the website, so an account, a star, a streak or a score is
 the same in both places:
 
-- **Sign-in** is Supabase Auth on the website's project: email and password, or Sign in with
-  Apple. There is no sign-up in the app; new students make an account on simplytk.com.
+- **Sign-in** is Supabase Auth on the website's project: email and password, a texted code,
+  or Sign in with Apple. As on the website, a code to a new number or a first Apple sign-in
+  makes the account; email accounts can no longer be made. Google sign-in is not in the app yet.
 - **Openings and stars** are read straight from the website's database (`jobs`,
   `companies`, `saved_jobs`) under its row-level security. See `src/lib/tracker/queries.ts`.
 - **The daily challenge, streak, leaderboards, league and push tokens** go through a few
@@ -132,7 +133,7 @@ Before the first store submission, work through
 ```
 src/app/                 Screens (Expo Router: every file is a route)
   _layout.tsx            Root stack, sign-in gate, theme, notification taps, splash
-  sign-in.tsx            Email and password, Sign in with Apple
+  sign-in.tsx            Email and password, phone code, Sign in with Apple
   (tabs)/_layout.tsx     Native tab bar
   (tabs)/index.tsx       Home
   (tabs)/tracker.tsx     Openings, filters, starred

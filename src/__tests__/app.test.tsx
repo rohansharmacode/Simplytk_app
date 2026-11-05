@@ -58,6 +58,8 @@ jest.mock('@/lib/supabase', () => ({
       onAuthStateChange: jest.fn(() => ({ data: { subscription: { unsubscribe: jest.fn() } } })),
       signInWithPassword: jest.fn(() => Promise.resolve({ error: null })),
       signInWithIdToken: jest.fn(() => Promise.resolve({ error: null })),
+      signInWithOtp: jest.fn(() => Promise.resolve({ error: null })),
+      verifyOtp: jest.fn(() => Promise.resolve({ data: { session: {} }, error: null })),
       signOut: jest.fn(() => Promise.resolve({ error: null })),
     },
   },
@@ -286,6 +288,37 @@ describe('signing in', () => {
     });
     await press('Sign in');
     expect(supabase.auth.signInWithPassword).toHaveBeenCalledWith({ email: 'rohan@example.com', password: 'hunter22' });
+  });
+
+  it('signs in with a texted code', async () => {
+    setSessionForTests(null);
+    await launch();
+    await press('Phone');
+    await act(async () => {
+      fireEvent.changeText(screen.getByLabelText('Mobile number'), '07700 900123');
+    });
+    await press('Text me a code');
+    expect(supabase.auth.signInWithOtp).toHaveBeenCalledWith({ phone: '+447700900123' });
+    expect(screen.getByText('We texted a code to +447700900123.')).toBeTruthy();
+    await act(async () => {
+      fireEvent.changeText(screen.getByLabelText('Code'), '123 456');
+    });
+    await press('Verify and sign in');
+    expect(supabase.auth.verifyOtp).toHaveBeenCalledWith({ phone: '+447700900123', token: '123456', type: 'sms' });
+  });
+
+  it('explains when email sign-in is switched off', async () => {
+    setSessionForTests(null);
+    jest.mocked(supabase.auth.signInWithPassword).mockResolvedValueOnce({
+      error: { code: 'email_provider_disabled', message: 'Email logins are disabled' },
+    } as never);
+    await launch();
+    await act(async () => {
+      fireEvent.changeText(screen.getByLabelText('Email'), 'rohan@example.com');
+      fireEvent.changeText(screen.getByLabelText('Password'), 'hunter22');
+    });
+    await press('Sign in');
+    expect(screen.getByText(/Email sign-in isn’t available right now/)).toBeTruthy();
   });
 
   it('sends new students to the website to make an account', async () => {

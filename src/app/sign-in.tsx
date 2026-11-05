@@ -12,18 +12,19 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Button, Kicker } from '@/components/ui';
+import { Button, Chip, Kicker } from '@/components/ui';
 import { Radius, Spacing } from '@/constants/theme';
 import { usePalette, useScheme } from '@/hooks/use-palette';
 import { openOutside } from '@/lib/open';
+import { authErrorMessage, cleanCode, PHONE_COUNTRIES, toE164Phone, type PhoneCountry } from '@/lib/phone';
 import { SITE_ORIGIN } from '@/lib/site';
 import { hideSplash } from '@/lib/splash';
 import { supabase } from '@/lib/supabase';
 
 /**
- * Sign in with the simplytk.com account: email and password, or Sign in with Apple, which
- * App Review requires because the website also offers Google. There is no sign-up here;
- * new students make an account on the website, which the button below opens.
+ * Sign in with the simplytk.com account: email and password, a texted code, or Sign in
+ * with Apple, which App Review requires because the website also offers Google. Like the
+ * website, a code to a new number makes the account; email accounts are made on the site.
  */
 export default function SignInScreen() {
   const palette = usePalette();
@@ -33,6 +34,12 @@ export default function SignInScreen() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [appleAvailable, setAppleAvailable] = useState(false);
+  const [method, setMethod] = useState<'email' | 'phone'>('email');
+  const [country, setCountry] = useState<PhoneCountry>('GB');
+  const [phone, setPhone] = useState('');
+  const [sentTo, setSentTo] = useState<string | null>(null);
+  const [code, setCode] = useState('');
+  const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(hideSplash, []);
 
@@ -51,13 +58,47 @@ export default function SignInScreen() {
       password,
     });
     setBusy(false);
+    if (failure) setError(authErrorMessage(failure));
+  }
+
+  async function sendCode(target: string) {
+    setError(null);
+    setNotice(null);
+    setBusy(true);
+    const { error: failure } = await supabase.auth.signInWithOtp({ phone: target });
+    setBusy(false);
     if (failure) {
-      setError(
-        /invalid login/i.test(failure.message)
-          ? 'That email and password do not match a simplytk account.'
-          : failure.message,
-      );
+      setError(authErrorMessage(failure));
+      return false;
     }
+    return true;
+  }
+
+  async function sendPhoneCode() {
+    const target = toE164Phone(country, phone);
+    if (!target) {
+      setError('That doesn’t look like a full mobile number. Check the country and the number.');
+      return;
+    }
+    if (await sendCode(target)) {
+      setCode('');
+      setSentTo(target);
+    }
+  }
+
+  async function resendCode() {
+    if (sentTo && (await sendCode(sentTo))) setNotice('A new code is on its way.');
+  }
+
+  async function verifyCode() {
+    if (!sentTo) return;
+    setError(null);
+    setNotice(null);
+    setBusy(true);
+    const { data, error: failure } = await supabase.auth.verifyOtp({ phone: sentTo, token: code, type: 'sms' });
+    setBusy(false);
+    if (failure) setError(authErrorMessage(failure));
+    else if (!data.session) setError('Couldn’t verify the code. Send a new one and try again.');
   }
 
   async function signInWithApple() {
@@ -110,43 +151,99 @@ export default function SignInScreen() {
           </View>
 
           <View style={styles.form}>
-            <TextInput
-              accessibilityLabel="Email"
-              placeholder="Email"
-              placeholderTextColor={palette.faint}
-              autoCapitalize="none"
-              autoComplete="email"
-              keyboardType="email-address"
-              textContentType="username"
-              returnKeyType="next"
-              value={email}
-              onChangeText={setEmail}
-              style={inputStyle}
-            />
-            <TextInput
-              accessibilityLabel="Password"
-              placeholder="Password"
-              placeholderTextColor={palette.faint}
-              secureTextEntry
-              autoComplete="current-password"
-              textContentType="password"
-              returnKeyType="go"
-              value={password}
-              onChangeText={setPassword}
-              onSubmitEditing={signInWithPassword}
-              style={inputStyle}
-            />
+            <View style={styles.methods}>
+              <Chip label="Email" selected={method === 'email'} onPress={() => { setMethod('email'); setError(null); }} />
+              <Chip label="Phone" selected={method === 'phone'} onPress={() => { setMethod('phone'); setError(null); }} />
+            </View>
+            {method === 'email' ? (
+              <>
+                <TextInput
+                  accessibilityLabel="Email"
+                  placeholder="Email"
+                  placeholderTextColor={palette.faint}
+                  autoCapitalize="none"
+                  autoComplete="email"
+                  keyboardType="email-address"
+                  textContentType="username"
+                  returnKeyType="next"
+                  value={email}
+                  onChangeText={setEmail}
+                  style={inputStyle}
+                />
+                <TextInput
+                  accessibilityLabel="Password"
+                  placeholder="Password"
+                  placeholderTextColor={palette.faint}
+                  secureTextEntry
+                  autoComplete="current-password"
+                  textContentType="password"
+                  returnKeyType="go"
+                  value={password}
+                  onChangeText={setPassword}
+                  onSubmitEditing={signInWithPassword}
+                  style={inputStyle}
+                />
+              </>
+            ) : sentTo ? (
+              <>
+                <Text style={[styles.note, styles.left, { color: palette.textSecondary }]}>
+                  We texted a code to {sentTo}.
+                </Text>
+                <TextInput
+                  accessibilityLabel="Code"
+                  placeholder="6-digit code"
+                  placeholderTextColor={palette.faint}
+                  keyboardType="number-pad"
+                  autoComplete="sms-otp"
+                  textContentType="oneTimeCode"
+                  returnKeyType="go"
+                  value={code}
+                  onChangeText={(text) => setCode(cleanCode(text))}
+                  onSubmitEditing={verifyCode}
+                  style={inputStyle}
+                />
+              </>
+            ) : (
+              <>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.methods}>
+                  {PHONE_COUNTRIES.map((c) => (
+                    <Chip key={c.iso} label={`${c.name} +${c.dial}`} selected={country === c.iso} onPress={() => setCountry(c.iso)} />
+                  ))}
+                </ScrollView>
+                <TextInput
+                  accessibilityLabel="Mobile number"
+                  placeholder="Mobile number"
+                  placeholderTextColor={palette.faint}
+                  keyboardType="phone-pad"
+                  autoComplete="tel"
+                  textContentType="telephoneNumber"
+                  returnKeyType="go"
+                  value={phone}
+                  onChangeText={setPhone}
+                  onSubmitEditing={sendPhoneCode}
+                  style={inputStyle}
+                />
+              </>
+            )}
             {error ? (
               <Text accessibilityRole="alert" style={[styles.error, { color: palette.danger }]}>
                 {error}
               </Text>
             ) : null}
-            <Button
-              label="Sign in"
-              onPress={signInWithPassword}
-              busy={busy}
-              disabled={!email.trim() || !password}
-            />
+            {notice ? <Text style={[styles.error, { color: palette.textSecondary }]}>{notice}</Text> : null}
+            {method === 'email' ? (
+              <Button label="Sign in" onPress={signInWithPassword} busy={busy} disabled={!email.trim() || !password} />
+            ) : sentTo ? (
+              <>
+                <Button label="Verify and sign in" onPress={verifyCode} busy={busy} disabled={code.length < 6} />
+                <View style={styles.methods}>
+                  <Chip label="Send a new code" selected={false} onPress={() => void resendCode()} />
+                  <Chip label="Use a different number" selected={false} onPress={() => { setSentTo(null); setNotice(null); setError(null); }} />
+                </View>
+              </>
+            ) : (
+              <Button label="Text me a code" onPress={sendPhoneCode} busy={busy} disabled={!phone.trim()} />
+            )}
             {appleAvailable ? (
               <AppleAuthentication.AppleAuthenticationButton
                 buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
@@ -169,7 +266,7 @@ export default function SignInScreen() {
               onPress={() => void openOutside(`${SITE_ORIGIN}/auth/reset`, 'browser')}
             />
             <Text style={[styles.note, { color: palette.textSecondary }]}>
-              New to simplytk? Make an account on the website, then sign in here.
+              New to simplytk? Sign in with your phone or Apple, or make an account on the website.
             </Text>
             <Button
               variant="secondary"
@@ -222,6 +319,14 @@ const styles = StyleSheet.create({
   },
   links: {
     gap: Spacing.three,
+  },
+  methods: {
+    flexDirection: 'row',
+    gap: Spacing.two,
+    flexWrap: 'wrap',
+  },
+  left: {
+    textAlign: 'left',
   },
   note: {
     fontSize: 14,
