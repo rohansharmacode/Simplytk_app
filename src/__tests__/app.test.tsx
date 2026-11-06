@@ -1,6 +1,7 @@
 import { act, cleanup, configure, fireEvent, renderRouter, screen } from 'expo-router/testing-library';
 import * as Clipboard from 'expo-clipboard';
 import * as Notifications from 'expo-notifications';
+import * as WebBrowser from 'expo-web-browser';
 import { AppState, BackHandler, Platform, type AppStateStatus } from 'react-native';
 
 import { NATIVE_DRILLS } from '@/components/drills/registry';
@@ -60,6 +61,7 @@ jest.mock('@/lib/supabase', () => ({
       signInWithIdToken: jest.fn(() => Promise.resolve({ error: null })),
       signInWithOtp: jest.fn(() => Promise.resolve({ error: null })),
       verifyOtp: jest.fn(() => Promise.resolve({ data: { session: {} }, error: null })),
+      setSession: jest.fn(() => Promise.resolve({ data: { session: {} }, error: null })),
       signOut: jest.fn(() => Promise.resolve({ error: null })),
     },
   },
@@ -305,6 +307,22 @@ describe('signing in', () => {
     });
     await press('Verify and sign in');
     expect(supabase.auth.verifyOtp).toHaveBeenCalledWith({ phone: '+447700900123', token: '123456', type: 'sms' });
+  });
+
+  it('signs in with Google through the website’s sign-in', async () => {
+    setSessionForTests(null);
+    jest.spyOn(Platform, 'Version', 'get').mockReturnValue('18.2');
+    const openAuth = jest
+      .spyOn(WebBrowser, 'openAuthSessionAsync')
+      .mockResolvedValue({ type: 'success', url: 'https://simplytk.com/auth#access_token=a&refresh_token=r&state=nonce' });
+    await launch();
+    await press('Continue with Google');
+    expect(openAuth).toHaveBeenCalledWith(
+      expect.stringContaining('https://simplytk.com/~oauth/initiate?provider=google'),
+      'https://simplytk.com/auth',
+      { preferUniversalLinks: true },
+    );
+    expect(supabase.auth.setSession).toHaveBeenCalledWith({ access_token: 'a', refresh_token: 'r' });
   });
 
   it('explains when email sign-in is switched off', async () => {

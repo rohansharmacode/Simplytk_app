@@ -1,5 +1,6 @@
 import * as AppleAuthentication from 'expo-apple-authentication';
 import * as Crypto from 'expo-crypto';
+import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useState } from 'react';
 import {
   KeyboardAvoidingView,
@@ -15,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, Chip, Kicker } from '@/components/ui';
 import { Radius, Spacing } from '@/constants/theme';
 import { usePalette, useScheme } from '@/hooks/use-palette';
+import { GOOGLE_RETURN_URL, googleSignInUrl, readOAuthReturn } from '@/lib/google';
 import { openOutside } from '@/lib/open';
 import { authErrorMessage, cleanCode, PHONE_COUNTRIES, toE164Phone, type PhoneCountry } from '@/lib/phone';
 import { SITE_ORIGIN } from '@/lib/site';
@@ -22,8 +24,18 @@ import { hideSplash } from '@/lib/splash';
 import { supabase } from '@/lib/supabase';
 
 /**
- * Sign in with the simplytk.com account: email and password, a texted code, or Sign in
- * with Apple, which App Review requires because the website also offers Google. Like the
+ * iOS 17.4 is the first that lets an auth session catch an https return address, which
+ * Google sign-in needs (src/lib/google.ts).
+ */
+function canSignInWithGoogle(): boolean {
+  if (Platform.OS !== 'ios') return false;
+  const [major = 0, minor = 0] = String(Platform.Version).split('.').map(Number);
+  return major > 17 || (major === 17 && minor >= 4);
+}
+
+/**
+ * Sign in with the simplytk.com account: email and password, a texted code, Google, or
+ * Sign in with Apple, which App Review requires because Google is offered. Like the
  * website, a code to a new number makes the account; email accounts are made on the site.
  */
 export default function SignInScreen() {
@@ -99,6 +111,30 @@ export default function SignInScreen() {
     setBusy(false);
     if (failure) setError(authErrorMessage(failure));
     else if (!data.session) setError('Couldn’t verify the code. Send a new one and try again.');
+  }
+
+  async function signInWithGoogle() {
+    setError(null);
+    setNotice(null);
+    const state = Crypto.randomUUID();
+    try {
+      const result = await WebBrowser.openAuthSessionAsync(googleSignInUrl(state), GOOGLE_RETURN_URL, {
+        preferUniversalLinks: true,
+      });
+      if (result.type !== 'success') return;
+      const answer = readOAuthReturn(result.url, state);
+      if ('error' in answer) {
+        setError(answer.error);
+        return;
+      }
+      setBusy(true);
+      const { error: failure } = await supabase.auth.setSession(answer.tokens);
+      setBusy(false);
+      if (failure) setError(authErrorMessage(failure));
+    } catch (failure) {
+      setBusy(false);
+      setError(failure instanceof Error ? failure.message : String(failure));
+    }
   }
 
   async function signInWithApple() {
@@ -244,6 +280,9 @@ export default function SignInScreen() {
             ) : (
               <Button label="Text me a code" onPress={sendPhoneCode} busy={busy} disabled={!phone.trim()} />
             )}
+            {canSignInWithGoogle() ? (
+              <Button variant="secondary" label="Continue with Google" onPress={signInWithGoogle} />
+            ) : null}
             {appleAvailable ? (
               <AppleAuthentication.AppleAuthenticationButton
                 buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
@@ -266,7 +305,7 @@ export default function SignInScreen() {
               onPress={() => void openOutside(`${SITE_ORIGIN}/auth/reset`, 'browser')}
             />
             <Text style={[styles.note, { color: palette.textSecondary }]}>
-              New to simplytk? Sign in with your phone or Apple, or make an account on the website.
+              New to simplytk? Sign in with Google, Apple or your phone, or make an account on the website.
             </Text>
             <Button
               variant="secondary"

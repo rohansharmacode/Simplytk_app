@@ -16,7 +16,8 @@
       "bundleIdentifier": "com.simplytk.app",
       "supportsTablet": false,
       "associatedDomains": [
-        "applinks:simplytk.com"
+        "applinks:simplytk.com",
+        "webcredentials:simplytk.com"
       ],
       "infoPlist": {
         "NSCameraUsageDescription": "simplytk uses your camera to record your answers in mock interviews.",

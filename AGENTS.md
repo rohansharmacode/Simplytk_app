@@ -13,8 +13,8 @@ the owner's go-ahead. README.md explains the structure. Before changing things, 
   link classification (`site.ts`), deep-link mapping (`routes.ts`), the injected bridge
   script (`bridge.ts`), the drills' catalogue and question generators (`drills/`), the
   tracker's filters and deadlines (`tracker/openings.ts`), the daily challenge's marking and
-  keypad (`daily/answers.ts`), leaderboard wording (`leaderboard.ts`) and phone sign-in's
-  number parsing and error wording (`phone.ts`).
+  keypad (`daily/answers.ts`), leaderboard wording (`leaderboard.ts`), phone sign-in's
+  number parsing and error wording (`phone.ts`) and reading Google sign-in's return (`google.ts`).
 - The bridge script is a string run inside web pages. Write it in ES5-style JavaScript and
   test it through `bridge.test.ts`, which executes it in a sandbox.
 - `docs/web-integration.md` and `docs/app-api.md` are the contract with the website. Update
