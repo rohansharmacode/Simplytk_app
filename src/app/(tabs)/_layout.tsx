@@ -5,6 +5,10 @@ import { usePalette } from '@/hooks/use-palette';
 /**
  * The app's five native tabs. Home, Tracker, Daily and Ranks are native screens; More
  * lists everything else on simplytk.com, which opens in a web view.
+ *
+ * This is the system tab bar, so on iOS 26 it is Liquid Glass and shrinks while you
+ * scroll down, as in Music and the App Store. The colours below only apply on iOS 18 and
+ * earlier and on Android.
  */
 export default function TabsLayout() {
   const palette = usePalette();
@@ -19,6 +23,7 @@ export default function TabsLayout() {
         default: { color: palette.textSecondary },
         selected: { color: palette.tint },
       }}
+      minimizeBehavior="onScrollDown"
       disableTransparentOnScrollEdge>
       <NativeTabs.Trigger name="index" contentStyle={{ backgroundColor: palette.background }}>
         <NativeTabs.Trigger.Label>Home</NativeTabs.Trigger.Label>

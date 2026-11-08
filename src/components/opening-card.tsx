@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Image, Pressable, StyleSheet, View } from 'react-native';
 
 import { Text } from '@/components/text';
 import { Card } from '@/components/ui';
@@ -49,49 +49,79 @@ export function DeadlinePill({ deadline, now }: { deadline: string | null; now: 
   );
 }
 
-/** One opening, laid out like a card on simplytk.com's tracker. */
+/** The firm's logo, or its initial on a tinted tile while there isn't one. */
+export function FirmLogo({ opening, size = 44 }: { opening: Opening; size?: number }) {
+  const palette = usePalette();
+  const firm = opening.companies?.name ?? '';
+  const logo = opening.companies?.logo_url;
+  const box = { width: size, height: size, borderRadius: size * 0.27 };
+  if (logo) {
+    return (
+      <View style={[box, styles.logoBox, { backgroundColor: '#FFFFFF', borderColor: palette.hair }]}>
+        <Image source={{ uri: logo }} style={{ width: size * 0.7, height: size * 0.7 }} resizeMode="contain" />
+      </View>
+    );
+  }
+  return (
+    <View style={[box, styles.logoBox, { backgroundColor: palette.tintSoft, borderColor: palette.hair }]}>
+      <Text style={[styles.initial, { color: palette.tint, fontSize: size * 0.42 }]}>{firm.slice(0, 1).toUpperCase()}</Text>
+    </View>
+  );
+}
+
+/** One opening, laid out like a card in Orbit's Discover feed. */
 export function OpeningCard({ opening, now }: { opening: Opening; now: Date }) {
   const palette = usePalette();
   const firm = opening.companies?.name ?? '';
-  const meta = [typeLabel(opening.programme_type), opening.location].filter(Boolean).join(' · ');
+  const type = typeLabel(opening.programme_type);
   return (
     <Card
       accessibilityLabel={`${firm} ${opening.title}`}
       onPress={() => router.push({ pathname: '/opening/[id]', params: { id: opening.id } })}
-      style={[styles.card, { borderLeftColor: palette.tint }]}>
+      style={styles.card}>
       <View style={styles.row}>
+        <FirmLogo opening={opening} />
         <View style={styles.text}>
-          <Text style={[styles.firm, { color: palette.text }]} numberOfLines={1}>
+          <Text style={[styles.firm, { color: palette.textSecondary }]} numberOfLines={1}>
             {firm}
           </Text>
           <Text style={[styles.title, { color: palette.text }]} numberOfLines={2}>
             {opening.title}
           </Text>
-          {meta ? (
-            <Text style={[styles.meta, { color: palette.textSecondary }]} numberOfLines={1}>
-              {meta}
-            </Text>
+          {opening.location ? (
+            <View style={styles.meta}>
+              <SymbolView
+                name={{ ios: 'mappin.and.ellipse', android: 'location_on', web: 'location_on' }}
+                tintColor={palette.faint}
+                size={12}
+              />
+              <Text style={[styles.metaText, { color: palette.textSecondary }]} numberOfLines={1}>
+                {opening.location}
+              </Text>
+            </View>
           ) : null}
         </View>
         <StarButton opening={opening} />
       </View>
       <View style={styles.footer}>
         <DeadlinePill deadline={opening.deadline} now={now} />
+        {type ? (
+          <View style={[styles.pill, { backgroundColor: palette.raised }]}>
+            <Text style={[styles.pillLabel, { color: palette.textSecondary }]}>{type}</Text>
+          </View>
+        ) : null}
+        <View style={{ flex: 1 }} />
         <Pressable
           accessibilityRole="link"
           accessibilityLabel={`Apply to ${firm}`}
           hitSlop={8}
           onPress={() => void openOutside(opening.apply_url, 'browser')}
-          style={({ pressed }) => [
-            styles.apply,
-            { borderColor: palette.border, backgroundColor: palette.surface },
-            pressed && { opacity: 0.6 },
-          ]}>
-          <Text style={[styles.applyLabel, { color: palette.text }]}>Apply</Text>
+          style={({ pressed }) => [styles.apply, { backgroundColor: palette.tintSoft }, pressed && { opacity: 0.6 }]}>
+          <Text style={[styles.applyLabel, { color: palette.tint }]}>Apply</Text>
           <SymbolView
             name={{ ios: 'arrow.up.right', android: 'arrow_outward', web: 'arrow_outward' }}
-            tintColor={palette.text}
-            size={12}
+            tintColor={palette.tint}
+            size={11}
           />
         </Pressable>
       </View>
@@ -101,31 +131,46 @@ export function OpeningCard({ opening, now }: { opening: Opening; now: Date }) {
 
 const styles = StyleSheet.create({
   card: {
-    gap: Spacing.three,
+    gap: 14,
     paddingVertical: 14,
-    borderLeftWidth: 3,
   },
   row: {
     flexDirection: 'row',
     gap: Spacing.three,
     alignItems: 'flex-start',
   },
+  logoBox: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  initial: {
+    fontWeight: '700',
+  },
   text: {
     flex: 1,
-    gap: 3,
+    gap: 2,
   },
   firm: {
-    fontSize: 15,
-    fontWeight: '700',
-    letterSpacing: -0.2,
+    fontSize: 13,
+    fontWeight: '500',
   },
   title: {
-    fontSize: 15,
-    lineHeight: 20,
+    fontSize: 16,
+    lineHeight: 21,
+    fontWeight: '600',
+    letterSpacing: -0.2,
   },
   meta: {
-    fontSize: 13,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     marginTop: 2,
+  },
+  metaText: {
+    fontSize: 13,
+    flexShrink: 1,
   },
   star: {
     padding: 2,
@@ -133,8 +178,7 @@ const styles = StyleSheet.create({
   footer: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: Spacing.three,
+    gap: Spacing.two,
   },
   pill: {
     borderRadius: 999,
@@ -148,14 +192,13 @@ const styles = StyleSheet.create({
   apply: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    borderWidth: 1,
+    gap: 4,
     borderRadius: 999,
     paddingHorizontal: 14,
-    paddingVertical: 6,
+    paddingVertical: 7,
   },
   applyLabel: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600',
   },
 });

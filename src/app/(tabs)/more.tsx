@@ -1,17 +1,14 @@
 import Constants from 'expo-constants';
 import { router, useFocusEffect } from 'expo-router';
-import { SymbolView, type AndroidSymbol, type SFSymbol } from 'expo-symbols';
-import { Fragment } from 'react';
-import { Alert, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { type AndroidSymbol, type SFSymbol } from 'expo-symbols';
+import { Alert, Platform, StyleSheet, View } from 'react-native';
 
 import { Text } from '@/components/text';
-import { IconTile, Wordmark } from '@/components/ui';
-import { cardShadow, Radius, Spacing } from '@/constants/theme';
+import { Group, Hero, onHero, Row, Screen, Title, Wordmark } from '@/components/ui';
+import { Spacing, type Tone } from '@/constants/theme';
 import { usePalette } from '@/hooks/use-palette';
 import { openOutside, shareLink } from '@/lib/open';
-import { signOut } from '@/lib/session';
+import { signOut, useSession } from '@/lib/session';
 import { SITE_ORIGIN } from '@/lib/site';
 import { hideSplash } from '@/lib/splash';
 
@@ -20,11 +17,12 @@ type Item = {
   icon: { ios: SFSymbol; android: AndroidSymbol };
 } & ({ path: string } | { onPress: () => void });
 
-type Section = { title: string; items: Item[] };
+type Section = { title: string; tone: Tone; items: Item[] };
 
 const SECTIONS: Section[] = [
   {
     title: 'Applications',
+    tone: 'blue',
     items: [
       { label: 'My applications', path: '/dashboard/applications', icon: { ios: 'checklist', android: 'checklist' } },
       { label: 'Opening soon', path: '/expected-openings', icon: { ios: 'calendar.badge.clock', android: 'event_upcoming' } },
@@ -36,6 +34,7 @@ const SECTIONS: Section[] = [
   },
   {
     title: 'AI tools',
+    tone: 'purple',
     items: [
       { label: 'CV rater', path: '/cv-rater', icon: { ios: 'doc.text.magnifyingglass', android: 'description' } },
       { label: 'Cover letter', path: '/cover-letter', icon: { ios: 'envelope.open', android: 'drafts' } },
@@ -47,6 +46,7 @@ const SECTIONS: Section[] = [
   },
   {
     title: 'Practice',
+    tone: 'green',
     items: [
       { label: 'Drills', onPress: () => router.push('/drills'), icon: { ios: 'stopwatch', android: 'timer' } },
       { label: 'My progress', path: '/progress', icon: { ios: 'chart.line.uptrend.xyaxis', android: 'trending_up' } },
@@ -57,6 +57,7 @@ const SECTIONS: Section[] = [
   },
   {
     title: 'Mentoring and guides',
+    tone: 'amber',
     items: [
       { label: '1:1 mentoring', path: '/', icon: { ios: 'person.2', android: 'group' } },
       { label: 'Spring Week Playbook', path: '/spring-week-playbook', icon: { ios: 'book.closed', android: 'auto_stories' } },
@@ -67,6 +68,7 @@ const SECTIONS: Section[] = [
   },
   {
     title: 'App',
+    tone: 'blue',
     items: [
       // Also where the account can be deleted, which App Review checks for.
       { label: 'Account settings', path: '/dashboard/settings', icon: { ios: 'person.crop.circle', android: 'account_circle' } },
@@ -106,111 +108,130 @@ function open(item: Item) {
 
 export default function MoreScreen() {
   const palette = usePalette();
+  const session = useSession();
   const version = Constants.expoConfig?.version ?? '';
-  const insets = useSafeAreaInsets();
-  // iOS insets the scroll view automatically; Android tabs only handle the bottom edge.
-  const topInset = Platform.OS === 'android' ? insets.top : 0;
 
   // Opened straight from a simplytk://more link there's no page load to wait for. (Tabs
   // mount eagerly, so this has to wait for focus rather than mount.)
   useFocusEffect(hideSplash);
 
+  const name = (session?.user.user_metadata?.full_name as string | undefined) ?? 'Your account';
+  const contact = session?.user.email ?? session?.user.phone ?? '';
+  const initials = name
+    .split(' ')
+    .map((part) => part[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+
   return (
-    <ScrollView
-      style={{ backgroundColor: palette.background }}
-      contentContainerStyle={[styles.content, { paddingTop: topInset + Spacing.four }]}
-      contentInsetAdjustmentBehavior="automatic">
-      <View style={styles.header}>
-        <Wordmark size={26} />
-        <Text style={[styles.tagline, { color: palette.textSecondary }]}>Find the role. Win the offer.</Text>
-      </View>
+    <Screen>
+      <Title eyebrow="simplytk" title="More" />
+
+      <Hero style={styles.profile}>
+        <View style={styles.profileRow}>
+          <View style={[styles.avatar, { borderColor: onHero.line }]}>
+            <Text style={styles.avatarText}>{initials}</Text>
+          </View>
+          <View style={styles.profileText}>
+            <Text style={styles.profileName} numberOfLines={1}>
+              {name}
+            </Text>
+            {contact ? (
+              <Text style={styles.profileContact} numberOfLines={1}>
+                {contact}
+              </Text>
+            ) : null}
+          </View>
+        </View>
+        <Text style={styles.profileNote}>Same account as simplytk.com. Stars, scores and streaks stay in sync.</Text>
+      </Hero>
 
       {SECTIONS.map((section) => (
         <View key={section.title} style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: palette.textSecondary }]}>
-            {section.title.toUpperCase()}
-          </Text>
-          <View
-            style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }, cardShadow(palette.shadow)]}>
-            {section.items.map((item, index) => (
-              <Fragment key={item.label}>
-                {index > 0 && (
-                  <View style={[styles.separator, { backgroundColor: palette.border }]} />
-                )}
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={() => open(item)}
-                  style={({ pressed }) => [
-                    styles.row,
-                    pressed && { backgroundColor: palette.muted },
-                  ]}>
-                  <IconTile icon={item.icon} />
-                  <Text style={[styles.label, { color: palette.text, fontWeight: '500' }]}>{item.label}</Text>
-                  {'path' in item && (
-                    <SymbolView
-                      name={{ ios: 'chevron.right', android: 'chevron_right', web: 'chevron_right' }}
-                      tintColor={palette.textSecondary}
-                      size={14}
-                    />
-                  )}
-                </Pressable>
-              </Fragment>
+          <Text style={[styles.sectionTitle, { color: palette.textSecondary }]}>{section.title.toUpperCase()}</Text>
+          <Group>
+            {section.items.map((item) => (
+              <Row
+                key={item.label}
+                icon={item.icon}
+                tone={item.label === 'Sign out' ? 'red' : section.tone}
+                title={item.label}
+                chevron={'path' in item}
+                onPress={() => open(item)}
+              />
             ))}
-          </View>
+          </Group>
         </View>
       ))}
 
-      <Text style={[styles.footer, { color: palette.textSecondary }]}>
-        simplytk for {Platform.OS === 'ios' ? 'iOS' : 'Android'} · version {version}
-      </Text>
-    </ScrollView>
+      <View style={styles.footer}>
+        <Wordmark size={18} />
+        <Text style={[styles.footerText, { color: palette.faint }]}>
+          Find the role. Win the offer. · {Platform.OS === 'ios' ? 'iOS' : 'Android'} {version}
+        </Text>
+      </View>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  content: {
-    padding: Spacing.four,
-    paddingBottom: Spacing.six,
-    gap: Spacing.five,
+  profile: {
+    gap: Spacing.three,
   },
-  header: {
-    gap: Spacing.two,
-    paddingHorizontal: Spacing.one,
+  profileRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.three,
   },
-  tagline: {
-    fontSize: 15,
+  avatar: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    borderWidth: 2,
+    backgroundColor: onHero.fill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarText: {
+    color: onHero.text,
+    fontSize: 19,
+    fontWeight: '700',
+  },
+  profileText: {
+    flex: 1,
+    gap: 2,
+  },
+  profileName: {
+    color: onHero.text,
+    fontSize: 20,
+    fontWeight: '700',
+    letterSpacing: -0.4,
+  },
+  profileContact: {
+    color: onHero.secondary,
+    fontSize: 14,
+  },
+  profileNote: {
+    color: onHero.secondary,
+    fontSize: 13,
+    lineHeight: 18,
   },
   section: {
     gap: Spacing.two,
   },
   sectionTitle: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
-    letterSpacing: 0.4,
+    letterSpacing: 0.6,
     marginLeft: Spacing.four,
   },
-  card: {
-    borderRadius: Radius.card,
-    borderWidth: 1,
-    overflow: 'hidden',
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    minHeight: 56,
-    paddingHorizontal: Spacing.four,
-    gap: Spacing.three,
-  },
-  label: {
-    flex: 1,
-    fontSize: 16,
-  },
-  separator: {
-    height: 1,
-    marginLeft: Spacing.four + 36 + Spacing.three,
-  },
   footer: {
-    fontSize: 13,
-    textAlign: 'center',
+    alignItems: 'center',
+    gap: Spacing.two,
+    paddingTop: Spacing.two,
+  },
+  footerText: {
+    fontSize: 12,
   },
 });

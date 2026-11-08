@@ -7,23 +7,30 @@ import type { Streak } from '@/lib/site-api';
 
 const WEEKDAY = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
-/** The last seven days: filled when played, outlined when a freeze covered it. */
-export function StreakStrip({ streak }: { streak: Streak }) {
+/**
+ * The last seven days as bars, as on Orbit's "This week" card: tall when played, half when
+ * a freeze covered it, a stub when missed. Today is the last bar.
+ */
+export function StreakStrip({ streak, height = 34 }: { streak: Streak; height?: number }) {
   const palette = usePalette();
   return (
     <View style={styles.row} accessibilityLabel={`Played ${streak.week.filter((d) => d.played).length} of the last 7 days`}>
       {streak.week.map((day) => {
         const weekday = WEEKDAY[new Date(`${day.day}T12:00:00Z`).getUTCDay()];
+        const barHeight = day.played ? (day.frozen ? height * 0.5 : height) : 5;
         return (
           <View key={day.day} style={styles.day}>
-            <View
-              style={[
-                styles.dot,
-                day.played
-                  ? { backgroundColor: day.frozen ? palette.tintSoft : palette.tint, borderColor: palette.tint }
-                  : { backgroundColor: palette.raised, borderColor: palette.raised },
-              ]}
-            />
+            <View style={{ height, justifyContent: 'flex-end' }}>
+              <View
+                style={[
+                  styles.bar,
+                  {
+                    height: barHeight,
+                    backgroundColor: day.played ? (day.frozen ? palette.tintSoft : palette.tint) : palette.raised,
+                  },
+                ]}
+              />
+            </View>
             <Text style={[styles.label, { color: palette.faint }]}>{weekday}</Text>
           </View>
         );
@@ -36,17 +43,18 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: Spacing.two,
+    gap: 6,
   },
   day: {
+    flex: 1,
     alignItems: 'center',
     gap: Spacing.one,
   },
-  dot: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    borderWidth: 1.5,
+  bar: {
+    width: '100%',
+    maxWidth: 18,
+    minWidth: 8,
+    borderRadius: 4,
   },
   label: {
     fontSize: 11,

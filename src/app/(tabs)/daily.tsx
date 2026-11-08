@@ -1,10 +1,10 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet } from 'react-native';
 
 import { StreakStrip } from '@/components/streak-strip';
 import { Text } from '@/components/text';
-import { Button, Card, Empty, Kicker, Loading, Screen, Stat, Title } from '@/components/ui';
+import { Button, Card, Empty, Group, Hero, HeroStats, Kicker, Loading, onHero, Row, Screen, SectionHeader, Title } from '@/components/ui';
 import { Spacing, Tabular } from '@/constants/theme';
 import { usePalette } from '@/hooks/use-palette';
 import { formatDuration } from '@/lib/daily/answers';
@@ -35,10 +35,7 @@ export default function DailyScreen() {
 
   return (
     <Screen refreshing={refreshing} onRefresh={refresh}>
-      <Title
-        title="Daily Challenge"
-        subtitle={`${daily ? `#${daily.number} · ` : ''}${daily?.total ?? 20} questions, the same set for everyone.`}
-      />
+      <Title eyebrow={daily ? `Daily #${daily.number}` : 'Daily'} title="Daily Challenge" />
 
       {!loaded ? <Loading /> : null}
 
@@ -51,43 +48,68 @@ export default function DailyScreen() {
       ) : null}
 
       {loaded && !missing ? (
-        <Card style={styles.today}>
+        <Hero>
+          <Kicker color={onHero.secondary}>{result ? 'Done for today' : 'Today’s set'}</Kicker>
           {result ? (
             <>
-              <Kicker color={palette.success}>Done for today</Kicker>
-              <Text style={[styles.score, Tabular, { color: palette.text }]}>
+              <Text style={[styles.heroScore, Tabular]}>
                 {result.score}/{result.total}
+                <Text style={styles.heroBody}>{`  in ${formatDuration(result.durationMs)}`}</Text>
               </Text>
-              <Text style={[styles.body, Tabular, { color: palette.textSecondary }]}>
-                in {formatDuration(result.durationMs)}. A new set lands at midnight.
-              </Text>
-              <Button variant="secondary" label="Review my answers" onPress={() => router.push('/challenge')} />
+              <Text style={styles.heroBody}>A new set lands at midnight.</Text>
+              <Button variant="onHero" label="Review my answers" onPress={() => router.push('/challenge')} />
             </>
           ) : (
             <>
-              <Text style={[styles.body, { color: palette.textSecondary }]}>
-                Sequences, mental maths, fractions and reasoning. Answer on the keypad; the clock runs until the last
-                question.
+              <Text style={styles.heroTitle}>{daily?.total ?? 20} questions</Text>
+              <Text style={styles.heroBody}>
+                The same set for everyone. Answer on the keypad; the clock runs until the last question.
               </Text>
-              <Button label="Start today’s challenge" onPress={() => router.push('/challenge')} />
+              <Button variant="onHero" label="Start today’s challenge" onPress={() => router.push('/challenge')} />
             </>
           )}
-        </Card>
+          {streak ? (
+            <HeroStats
+              stats={[
+                { value: String(streak.current), label: 'Day streak' },
+                { value: String(streak.best), label: 'Best' },
+                { value: String(streak.freezesLeft), label: 'Freezes left' },
+              ]}
+            />
+          ) : null}
+        </Hero>
       ) : null}
 
       {streak ? (
-        <Card>
-          <View style={styles.streakRow}>
-            <Stat value={String(streak.current)} label="day streak" />
-            <Stat value={String(streak.best)} label="best" color={palette.textSecondary} />
-            <Stat value={String(streak.freezesLeft)} label="freezes left" color={palette.textSecondary} />
-          </View>
-          <StreakStrip streak={streak} />
-          {streak.atRisk ? (
-            <Text style={[styles.body, { color: palette.warning }]}>Play today to keep your streak.</Text>
-          ) : null}
-        </Card>
+        <>
+          <SectionHeader title="This week" icon={{ ios: 'flame.fill', android: 'local_fire_department' }} tone="amber" />
+          <Card>
+            <StreakStrip streak={streak} />
+            {streak.atRisk ? (
+              <Text style={[styles.body, { color: palette.warning }]}>Play today to keep your streak.</Text>
+            ) : null}
+          </Card>
+        </>
       ) : null}
+
+      <SectionHeader title="What’s in it" icon={{ ios: 'square.grid.2x2.fill', android: 'grid_view' }} tone="purple" />
+      <Group>
+        {[
+          <Row key="seq" icon={{ ios: 'arrow.right', android: 'arrow_forward' }} tone="blue" title="Number sequences" subtitle="Find what comes next" />,
+          <Row key="maths" icon={{ ios: 'plus.forwardslash.minus', android: 'calculate' }} tone="green" title="Mental arithmetic" subtitle="Quick sums, no calculator" />,
+          <Row key="frac" icon={{ ios: 'divide', android: 'percent' }} tone="amber" title="Fractions" subtitle="Simplify and compare" />,
+          <Row key="reason" icon={{ ios: 'lightbulb.fill', android: 'lightbulb' }} tone="purple" title="Reasoning" subtitle="Pick the right answer" />,
+          <Row
+            key="board"
+            icon={{ ios: 'trophy.fill', android: 'emoji_events' }}
+            tone="blue"
+            title="Today’s leaderboard"
+            subtitle="Score first, then time"
+            chevron
+            onPress={() => router.navigate('/ranks?board=daily')}
+          />,
+        ]}
+      </Group>
 
       {error ? <Text style={[styles.body, { color: palette.danger }]}>{error}</Text> : null}
     </Screen>
@@ -95,10 +117,23 @@ export default function DailyScreen() {
 }
 
 const styles = StyleSheet.create({
-  today: {
-    gap: Spacing.four,
+  heroTitle: {
+    color: onHero.text,
+    fontSize: 28,
+    lineHeight: 33,
+    fontWeight: '700',
+    letterSpacing: -0.7,
+    marginBottom: -Spacing.two,
   },
-  score: {
+  heroBody: {
+    color: onHero.secondary,
+    fontSize: 15,
+    lineHeight: 21,
+    fontWeight: '400',
+    letterSpacing: 0,
+  },
+  heroScore: {
+    color: onHero.text,
     fontSize: 44,
     lineHeight: 50,
     fontWeight: '700',
@@ -107,9 +142,5 @@ const styles = StyleSheet.create({
   body: {
     fontSize: 15,
     lineHeight: 21,
-  },
-  streakRow: {
-    flexDirection: 'row',
-    gap: Spacing.six,
   },
 });

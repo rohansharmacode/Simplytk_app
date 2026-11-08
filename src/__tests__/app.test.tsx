@@ -356,9 +356,9 @@ describe('Home', () => {
   it('shows the streak, today’s challenge, the league place and starred openings', async () => {
     jest.mocked(Queries.fetchStarred).mockResolvedValue([OPENING] as never);
     await launch();
-    expect(screen.getAllByText('6 days').length).toBeGreaterThan(0);
-    expect(screen.getByText('Play today to keep it')).toBeTruthy();
-    expect(screen.getByText('#4')).toBeTruthy();
+    expect(screen.getAllByText('Day streak').length).toBeGreaterThan(0);
+    expect(screen.getByText('Keep your 6-day streak')).toBeTruthy();
+    expect(screen.getAllByText('#4').length).toBeGreaterThan(0);
     expect(screen.getAllByText('#210').length).toBeGreaterThan(0);
     // Starred openings show on Home and in the Tracker's starred list.
     expect(screen.getAllByText('Spring Week 2027').length).toBeGreaterThan(0);
@@ -388,7 +388,11 @@ describe('Tracker', () => {
       { region: 'uk', types: [], firm: '', deadline: 'any' },
       0,
     );
-    await press('Spring week');
+    // The first "Spring week" is the filter chip; cards below show the type too.
+    await act(async () => {
+      fireEvent.press(screen.getAllByText('Spring week')[0]);
+    });
+    await flush();
     await press('Closing this week');
     await press('US');
     expect(Queries.fetchOpenings).toHaveBeenLastCalledWith(

@@ -133,7 +133,7 @@ export default function RanksScreen() {
 
   return (
     <Screen refreshing={refreshing} onRefresh={refresh} footer={footer}>
-      <Title title="Ranks" subtitle="The same leaderboards as the website." />
+      <Title eyebrow="Leaderboards" title="Ranks" />
 
       <Segmented options={BOARDS} value={which} onChange={setWhich} />
 

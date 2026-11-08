@@ -7,13 +7,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { OpeningCard } from '@/components/opening-card';
 import { Text, TextInput } from '@/components/text';
-import { Chip, Empty, Loading, Segmented, Title } from '@/components/ui';
-import { cardShadow, Spacing } from '@/constants/theme';
+import { Chip, Empty, Hero, HeroStats, Kicker, Loading, onHero, Segmented, Title } from '@/components/ui';
+import { Spacing } from '@/constants/theme';
 import { usePalette } from '@/hooks/use-palette';
 import { hideSplash } from '@/lib/splash';
 import { loadStars, useStars } from '@/lib/stars';
 import {
   activeFilterCount,
+  daysLeft,
   DEADLINE_FILTERS,
   DEADLINE_LABELS,
   DEFAULT_FILTERS,
@@ -107,12 +108,31 @@ export default function TrackerScreen() {
   const starred = useMemo(() => upcomingStarred(stars.list ?? [], new Date()), [stars.list]);
   const data = view === 'all' ? (openings ?? []) : starred;
   const filterCount = activeFilterCount(filters);
+  const closingThisWeek = starred.filter((o) => {
+    if (!o.deadline) return false;
+    const left = daysLeft(o.deadline, new Date());
+    return left >= 0 && left <= 7;
+  }).length;
 
   const header = (
     <View style={[styles.header, { paddingTop: topInset + Spacing.four }]}>
-      <Title title="Tracker" subtitle="Live openings, closing soonest first." />
+      <Title eyebrow="Openings" title="Tracker" />
 
-      <View style={[styles.search, { backgroundColor: palette.surface, borderColor: palette.border }, cardShadow(palette.shadow)]}>
+      <Hero style={styles.hero}>
+        <View style={styles.heroHead}>
+          <Kicker color={onHero.secondary}>Your tracker</Kicker>
+          <Text style={styles.heroNote}>{REGION_LABELS[filters.region]}</Text>
+        </View>
+        <HeroStats
+          stats={[
+            { value: stars.list ? String(starred.length) : '–', label: 'Starred' },
+            { value: stars.list ? String(closingThisWeek) : '–', label: 'Close this week' },
+            { value: openings ? (openings.length >= PAGE_SIZE ? `${openings.length}+` : String(openings.length)) : '–', label: 'Shown' },
+          ]}
+        />
+      </Hero>
+
+      <View style={[styles.search, { backgroundColor: palette.raised }]}>
         <SymbolView
           name={{ ios: 'magnifyingglass', android: 'search', web: 'search' }}
           tintColor={palette.faint}
@@ -241,7 +261,20 @@ function ChipRow({ children }: { children: React.ReactNode }) {
 const styles = StyleSheet.create({
   list: {
     paddingHorizontal: Spacing.four,
-    paddingBottom: Spacing.six,
+    paddingBottom: Platform.OS === 'web' ? 112 : Spacing.six,
+  },
+  hero: {
+    gap: Spacing.three,
+  },
+  heroHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  heroNote: {
+    color: onHero.secondary,
+    fontSize: 13,
+    fontWeight: '600',
   },
   header: {
     gap: Spacing.four,
@@ -250,8 +283,7 @@ const styles = StyleSheet.create({
   search: {
     minHeight: 48,
     borderRadius: 12,
-    borderWidth: 1,
-    paddingHorizontal: 14,
+    paddingHorizontal: 12,
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.two,

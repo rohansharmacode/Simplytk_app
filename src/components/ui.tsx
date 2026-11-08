@@ -1,18 +1,35 @@
+import { GlassView, isLiquidGlassAvailable } from 'expo-glass-effect';
+import { LinearGradient } from 'expo-linear-gradient';
 import { SymbolView, type AndroidSymbol, type SFSymbol } from 'expo-symbols';
-import type { ReactNode } from 'react';
-import { ActivityIndicator, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
-
+import { Fragment, type ReactNode } from 'react';
+import {
+  ActivityIndicator,
+  Platform,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  View,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Text } from '@/components/text';
-import { cardShadow, Radius, Spacing, Tabular } from '@/constants/theme';
+import { cardShadow, Radius, Spacing, Tabular, toneColors, type Tone } from '@/constants/theme';
 import { usePalette } from '@/hooks/use-palette';
 
 /**
- * The pieces every native screen is built from, after simplytk.com: Inter, white cards with
- * a hairline edge and a soft shadow, blue pill buttons, grey segmented controls, and iOS
- * large titles. Numbers are tabular so counters don't jitter.
+ * The pieces every native screen is built from, in the style of Apple's own apps and the
+ * Orbit app: iOS large titles with round Liquid Glass buttons, white cards with a soft
+ * shadow, a navy hero card, coloured icon tiles and tinted action pills. Numbers are
+ * tabular so counters don't jitter.
  */
+
+export type Icon = { ios: SFSymbol; android: AndroidSymbol };
+
+/** Room under the content for the floating tab bar. */
+const BOTTOM_ROOM = Platform.OS === 'web' ? 112 : Spacing.six;
 
 export function Screen({
   children,
@@ -34,7 +51,7 @@ export function Screen({
     <View style={{ flex: 1, backgroundColor: palette.background }}>
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={[styles.content, { paddingTop: topInset + Spacing.four }]}
+        contentContainerStyle={[styles.content, { paddingTop: topInset + Spacing.three, paddingBottom: BOTTOM_ROOM }]}
         contentInsetAdjustmentBehavior="automatic"
         keyboardShouldPersistTaps="handled"
         refreshControl={
@@ -49,33 +66,146 @@ export function Screen({
   );
 }
 
-/** A small uppercase label: a section header, or the line above a title. */
+/** A small uppercase label: the date over a title, or a label on a card. */
 export function Kicker({ children, color }: { children: ReactNode; color?: string }) {
   const palette = usePalette();
   return <Text style={[styles.kicker, { color: color ?? palette.textSecondary }]}>{children}</Text>;
 }
 
-/** An iOS large title, with an optional short line under it. */
-export function Title({ kicker, title, subtitle }: { kicker?: string; title: string; subtitle?: string }) {
+/**
+ * An iOS large title. `eyebrow` is the small line above it (Orbit puts the date there),
+ * `actions` the round glass buttons on its right.
+ */
+export function Title({
+  eyebrow,
+  title,
+  subtitle,
+  actions,
+}: {
+  eyebrow?: string;
+  title: string;
+  subtitle?: string;
+  actions?: ReactNode;
+}) {
   const palette = usePalette();
   return (
-    <View style={styles.titleBlock}>
-      {kicker ? <Kicker color={palette.tint}>{kicker}</Kicker> : null}
-      <Text accessibilityRole="header" style={[styles.title, { color: palette.text }]}>
-        {title}
-      </Text>
-      {subtitle ? <Text style={[styles.subtitle, { color: palette.textSecondary }]}>{subtitle}</Text> : null}
+    <View style={styles.titleRow}>
+      <View style={styles.titleBlock}>
+        {eyebrow ? <Kicker>{eyebrow}</Kicker> : null}
+        <Text accessibilityRole="header" style={[styles.title, { color: palette.text }]}>
+          {title}
+        </Text>
+        {subtitle ? <Text style={[styles.subtitle, { color: palette.textSecondary }]}>{subtitle}</Text> : null}
+      </View>
+      {actions ? <View style={styles.titleActions}>{actions}</View> : null}
     </View>
   );
 }
 
-export function SectionHeader({ title, action }: { title: string; action?: { label: string; onPress: () => void } }) {
+/**
+ * A round toolbar button. On iOS 26 it is real Liquid Glass; elsewhere a frosted circle
+ * with a soft shadow.
+ */
+export function GlassButton({ icon, label, onPress }: { icon: Icon; label: string; onPress: () => void }) {
+  const palette = usePalette();
+  const glyph = <SymbolView name={{ ...icon, web: icon.android }} tintColor={palette.tint} size={19} />;
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      hitSlop={6}
+      onPress={onPress}
+      style={({ pressed }) => pressed && { transform: [{ scale: 0.94 }] }}>
+      {isLiquidGlassAvailable() ? (
+        <GlassView glassEffectStyle="regular" isInteractive style={styles.glassButton}>
+          {glyph}
+        </GlassView>
+      ) : (
+        <View
+          style={[
+            styles.glassButton,
+            { backgroundColor: palette.glass, borderColor: palette.hair, borderWidth: 1 },
+            cardShadow(palette.shadow),
+          ]}>
+          {glyph}
+        </View>
+      )}
+    </Pressable>
+  );
+}
+
+/** Colours for text on the navy hero card. */
+export const onHero = {
+  text: '#FFFFFF',
+  secondary: 'rgba(255,255,255,0.7)',
+  faint: 'rgba(255,255,255,0.5)',
+  line: 'rgba(255,255,255,0.12)',
+  fill: 'rgba(255,255,255,0.12)',
+};
+
+/** The navy card at the top of a tab, after Orbit's "Coming up" and "Open roles" cards. */
+export function Hero({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) {
   const palette = usePalette();
   return (
+    <LinearGradient
+      colors={[palette.heroFrom, palette.heroTo]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={[styles.hero, style]}>
+      <View pointerEvents="none" style={styles.heroGlow} />
+      {children}
+    </LinearGradient>
+  );
+}
+
+/** A row of numbers along the bottom of the hero card. */
+export function HeroStats({ stats }: { stats: { value: string; label: string; color?: string }[] }) {
+  return (
+    <View style={[styles.heroStats, { borderTopColor: onHero.line }]}>
+      {stats.map((stat) => (
+        <View key={stat.label} style={styles.heroStat}>
+          <Text style={[styles.heroStatValue, Tabular, { color: stat.color ?? onHero.text }]}>{stat.value}</Text>
+          <Text style={[styles.heroStatLabel, { color: onHero.secondary }]} numberOfLines={1}>
+            {stat.label}
+          </Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+/** A section title with a small coloured tile, a count and a "See all" link, as in Orbit. */
+export function SectionHeader({
+  title,
+  icon,
+  tone = 'blue',
+  count,
+  action,
+}: {
+  title: string;
+  icon?: Icon;
+  tone?: Tone;
+  count?: number;
+  action?: { label: string; onPress: () => void };
+}) {
+  const palette = usePalette();
+  const colors = toneColors(palette, tone);
+  return (
     <View style={styles.sectionHeader}>
-      <Text accessibilityRole="header" style={[styles.sectionTitle, { color: palette.text }]}>
+      {icon ? (
+        <View style={[styles.sectionIcon, { backgroundColor: colors.bg }]}>
+          <SymbolView name={{ ...icon, web: icon.android }} tintColor={colors.fg} size={14} />
+        </View>
+      ) : null}
+      <Text accessibilityRole="header" style={[styles.sectionTitle, { color: palette.text }]} numberOfLines={1}>
         {title}
       </Text>
+      {count != null ? (
+        <View style={[styles.count, { backgroundColor: colors.bg }]}>
+          <Text style={[styles.countText, Tabular, { color: colors.fg }]}>{count}</Text>
+        </View>
+      ) : null}
+      <View style={{ flex: 1 }} />
       {action ? (
         <Pressable accessibilityRole="button" hitSlop={8} onPress={action.onPress}>
           <Text style={[styles.sectionAction, { color: palette.tint }]}>{action.label}</Text>
@@ -109,8 +239,88 @@ export function Card({
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
       onPress={onPress}
-      style={({ pressed }) => [base, pressed && { backgroundColor: palette.raised }]}>
+      style={({ pressed }) => [base, pressed && { transform: [{ scale: 0.985 }] }]}>
       {children}
+    </Pressable>
+  );
+}
+
+/** An inset grouped list, like Settings: rows in one card with hairlines between them. */
+export function Group({ children }: { children: ReactNode[] }) {
+  const palette = usePalette();
+  const rows = children.filter(Boolean);
+  return (
+    <View style={[styles.group, { backgroundColor: palette.surface, borderColor: palette.hair }, cardShadow(palette.shadow)]}>
+      {rows.map((row, index) => (
+        <Fragment key={index}>
+          {index > 0 ? <View style={[styles.separator, { backgroundColor: palette.hair }]} /> : null}
+          {row}
+        </Fragment>
+      ))}
+    </View>
+  );
+}
+
+/** One row of a Group: a coloured tile, a title and subtitle, and a pill or a chevron. */
+export function Row({
+  icon,
+  tone = 'blue',
+  title,
+  subtitle,
+  pill,
+  chevron,
+  onPress,
+}: {
+  icon: Icon;
+  tone?: Tone;
+  title: string;
+  subtitle?: string;
+  pill?: { label: string; tone?: Tone; onPress?: () => void };
+  chevron?: boolean;
+  onPress?: () => void;
+}) {
+  const palette = usePalette();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      disabled={!onPress}
+      onPress={onPress}
+      style={({ pressed }) => [styles.row, pressed && { backgroundColor: palette.muted }]}>
+      <IconTile icon={icon} tone={tone} />
+      <View style={styles.rowText}>
+        <Text style={[styles.rowTitle, { color: palette.text }]} numberOfLines={1}>
+          {title}
+        </Text>
+        {subtitle ? (
+          <Text style={[styles.rowSubtitle, { color: palette.textSecondary }]} numberOfLines={1}>
+            {subtitle}
+          </Text>
+        ) : null}
+      </View>
+      {pill ? <Pill label={pill.label} tone={pill.tone ?? tone} onPress={pill.onPress ?? onPress} /> : null}
+      {chevron ? (
+        <SymbolView
+          name={{ ios: 'chevron.right', android: 'chevron_right', web: 'chevron_right' }}
+          tintColor={palette.faint}
+          size={13}
+        />
+      ) : null}
+    </Pressable>
+  );
+}
+
+/** A tinted action pill: "Apply", "Play", "Prepare". */
+export function Pill({ label, tone = 'blue', onPress }: { label: string; tone?: Tone; onPress?: () => void }) {
+  const palette = usePalette();
+  const colors = toneColors(palette, tone);
+  return (
+    <Pressable
+      accessibilityRole="button"
+      disabled={!onPress}
+      onPress={onPress}
+      hitSlop={6}
+      style={({ pressed }) => [styles.pill, { backgroundColor: colors.bg }, pressed && { opacity: 0.7 }]}>
+      <Text style={[styles.pillLabel, { color: colors.fg }]}>{label}</Text>
     </Pressable>
   );
 }
@@ -125,14 +335,15 @@ export function Button({
 }: {
   label: string;
   onPress: () => void;
-  variant?: 'primary' | 'secondary';
+  /** `onHero` is the white button on the navy hero card. */
+  variant?: 'primary' | 'secondary' | 'onHero';
   disabled?: boolean;
   busy?: boolean;
   icon?: Icon;
 }) {
   const palette = usePalette();
-  const primary = variant === 'primary';
-  const color = primary ? palette.onTint : palette.text;
+  const color =
+    variant === 'primary' ? palette.onTint : variant === 'onHero' ? '#0D1A45' : palette.tint;
   return (
     <Pressable
       accessibilityRole="button"
@@ -141,9 +352,9 @@ export function Button({
       onPress={onPress}
       style={({ pressed }) => [
         styles.button,
-        primary
-          ? { backgroundColor: palette.tint }
-          : [{ backgroundColor: palette.surface, borderColor: palette.border, borderWidth: 1 }, cardShadow(palette.shadow)],
+        variant === 'primary' && { backgroundColor: palette.tint },
+        variant === 'secondary' && { backgroundColor: palette.tintSoft },
+        variant === 'onHero' && { backgroundColor: '#FFFFFF' },
         (disabled || busy) && { opacity: 0.5 },
         pressed && { transform: [{ scale: 0.97 }] },
       ]}>
@@ -151,7 +362,7 @@ export function Button({
         <ActivityIndicator color={color} />
       ) : (
         <>
-          {icon ? <SymbolView name={{ ...icon, web: icon.android }} tintColor={color} size={18} /> : null}
+          {icon ? <SymbolView name={{ ...icon, web: icon.android }} tintColor={color} size={17} /> : null}
           <Text style={[styles.buttonLabel, { color }]}>{label}</Text>
         </>
       )}
@@ -169,15 +380,17 @@ export function Chip({ label, selected, onPress }: { label: string; selected: bo
       onPress={onPress}
       style={({ pressed }) => [
         styles.chip,
-        { backgroundColor: selected ? palette.tint : palette.raised },
+        selected
+          ? { backgroundColor: palette.tint }
+          : [{ backgroundColor: palette.surface, borderColor: palette.hair, borderWidth: 1 }, cardShadow(palette.shadow)],
         pressed && { opacity: 0.7 },
       ]}>
-      <Text style={[styles.chipLabel, { color: selected ? palette.onTint : palette.textSecondary }]}>{label}</Text>
+      <Text style={[styles.chipLabel, { color: selected ? palette.onTint : palette.text }]}>{label}</Text>
     </Pressable>
   );
 }
 
-/** The site's segmented control: a grey track with the chosen option raised in white. */
+/** The iOS segmented control: a grey track with the chosen option raised in white. */
 export function Segmented<T extends string>({
   options,
   value,
@@ -266,62 +479,127 @@ export function Wordmark({ size = 22 }: { size?: number }) {
   );
 }
 
-export type Icon = { ios: SFSymbol; android: AndroidSymbol };
-
-export function IconTile({ icon, color }: { icon: Icon; color?: string }) {
+/** A rounded square with a symbol on a soft tint of its colour. */
+export function IconTile({ icon, tone = 'blue', size = 36 }: { icon: Icon; tone?: Tone; size?: number }) {
   const palette = usePalette();
+  const colors = toneColors(palette, tone);
   return (
-    <View style={[styles.iconTile, { backgroundColor: palette.tintSoft }]}>
-      <SymbolView name={{ ...icon, web: icon.android }} tintColor={color ?? palette.tint} size={18} />
+    <View style={[styles.iconTile, { width: size, height: size, borderRadius: size * 0.3, backgroundColor: colors.bg }]}>
+      <SymbolView name={{ ...icon, web: icon.android }} tintColor={colors.fg} size={size * 0.5} />
     </View>
   );
 }
 
-export const text = StyleSheet.create({
-  body: { fontSize: 15, lineHeight: 21 },
-  small: { fontSize: 13, lineHeight: 18 },
-  strong: { fontSize: 16, fontWeight: '600', letterSpacing: -0.2 },
-});
-
 const styles = StyleSheet.create({
   content: {
     paddingHorizontal: Spacing.four,
-    paddingBottom: Spacing.six,
     gap: Spacing.five,
   },
   kicker: {
-    fontSize: 13,
-    letterSpacing: 0.6,
+    fontSize: 12,
+    letterSpacing: 0.7,
     textTransform: 'uppercase',
     fontWeight: '600',
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: Spacing.three,
+  },
   titleBlock: {
-    gap: 6,
+    flex: 1,
+    gap: 4,
+  },
+  titleActions: {
+    flexDirection: 'row',
+    gap: Spacing.two,
+    paddingBottom: 2,
   },
   title: {
     fontSize: 32,
     lineHeight: 38,
     fontWeight: '700',
-    letterSpacing: -0.9,
+    letterSpacing: -0.8,
   },
   subtitle: {
-    fontSize: 16,
-    lineHeight: 23,
+    fontSize: 15,
+    lineHeight: 21,
+  },
+  glassButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  hero: {
+    borderRadius: 24,
+    padding: Spacing.four,
+    gap: Spacing.four,
+    overflow: 'hidden',
+  },
+  heroGlow: {
+    position: 'absolute',
+    width: 260,
+    height: 260,
+    borderRadius: 130,
+    top: -60,
+    right: -70,
+    backgroundColor: 'rgba(110,145,255,0.22)',
+  },
+  heroStats: {
+    flexDirection: 'row',
+    borderTopWidth: 1,
+    paddingTop: Spacing.three,
+  },
+  heroStat: {
+    flex: 1,
+    gap: 1,
+  },
+  heroStatValue: {
+    fontSize: 22,
+    lineHeight: 28,
+    fontWeight: '700',
+    letterSpacing: -0.5,
+  },
+  heroStatLabel: {
+    fontSize: 12,
   },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: Spacing.two,
     marginBottom: -Spacing.two,
+  },
+  sectionIcon: {
+    width: 26,
+    height: 26,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   sectionTitle: {
     fontSize: 20,
-    fontWeight: '600',
+    fontWeight: '700',
     letterSpacing: -0.4,
+    flexShrink: 1,
+  },
+  count: {
+    minWidth: 22,
+    height: 22,
+    borderRadius: 11,
+    paddingHorizontal: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  countText: {
+    fontSize: 12,
+    fontWeight: '700',
   },
   sectionAction: {
     fontSize: 15,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   card: {
     borderRadius: Radius.card,
@@ -329,8 +607,47 @@ const styles = StyleSheet.create({
     padding: Spacing.four,
     gap: Spacing.three,
   },
+  group: {
+    borderRadius: Radius.card,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  separator: {
+    height: 1,
+    marginLeft: Spacing.four + 36 + Spacing.three,
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.three,
+    paddingHorizontal: Spacing.four,
+    paddingVertical: Spacing.three,
+    minHeight: 60,
+  },
+  rowText: {
+    flex: 1,
+    gap: 2,
+  },
+  rowTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    letterSpacing: -0.2,
+  },
+  rowSubtitle: {
+    fontSize: 13,
+  },
+  pill: {
+    borderRadius: Radius.pill,
+    paddingHorizontal: 14,
+    minHeight: 32,
+    justifyContent: 'center',
+  },
+  pillLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
   button: {
-    minHeight: 48,
+    minHeight: 50,
     borderRadius: Radius.pill,
     paddingHorizontal: Spacing.five,
     flexDirection: 'row',
@@ -409,9 +726,6 @@ const styles = StyleSheet.create({
     letterSpacing: -0.6,
   },
   iconTile: {
-    width: 36,
-    height: 36,
-    borderRadius: Radius.small,
     alignItems: 'center',
     justifyContent: 'center',
   },
