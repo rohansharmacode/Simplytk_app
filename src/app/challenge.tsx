@@ -1,10 +1,12 @@
 import { router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useEffect, useRef, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { NumberPad, type PadKey } from '@/components/number-pad';
+import { Text } from '@/components/text';
 import { Button, Card, Kicker, Loading } from '@/components/ui';
 import { Radius, Spacing, Tabular } from '@/constants/theme';
 import { usePalette } from '@/hooks/use-palette';

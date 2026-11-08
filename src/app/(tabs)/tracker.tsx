@@ -1,11 +1,14 @@
 import { useFocusEffect } from 'expo-router';
+import { SymbolView } from 'expo-symbols';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { FlatList, Platform, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { FlatList, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { OpeningCard } from '@/components/opening-card';
-import { Chip, Empty, Loading, Title } from '@/components/ui';
-import { Radius, Spacing } from '@/constants/theme';
+import { Text, TextInput } from '@/components/text';
+import { Chip, Empty, Loading, Segmented, Title } from '@/components/ui';
+import { cardShadow, Spacing } from '@/constants/theme';
 import { usePalette } from '@/hooks/use-palette';
 import { hideSplash } from '@/lib/splash';
 import { loadStars, useStars } from '@/lib/stars';
@@ -107,41 +110,48 @@ export default function TrackerScreen() {
 
   const header = (
     <View style={[styles.header, { paddingTop: topInset + Spacing.four }]}>
-      <Title kicker="Tracker" title="Every opening." subtitle="Star one to get its alerts." />
+      <Title title="Tracker" subtitle="Live openings, closing soonest first." />
 
-      <TextInput
-        accessibilityLabel="Search firms"
-        placeholder="Search firms"
-        placeholderTextColor={palette.faint}
-        autoCorrect={false}
-        returnKeyType="search"
-        clearButtonMode="while-editing"
-        value={firmInput}
-        onChangeText={setFirmInput}
-        style={[styles.search, { backgroundColor: palette.surface, borderColor: palette.hair, color: palette.text }]}
-      />
-
-      <View style={styles.segment}>
-        <Chip label="All openings" selected={view === 'all'} onPress={() => setView('all')} />
-        <Chip
-          label={`Starred${stars.list ? ` · ${starred.length}` : ''}`}
-          selected={view === 'starred'}
-          onPress={() => setView('starred')}
+      <View style={[styles.search, { backgroundColor: palette.surface, borderColor: palette.border }, cardShadow(palette.shadow)]}>
+        <SymbolView
+          name={{ ios: 'magnifyingglass', android: 'search', web: 'search' }}
+          tintColor={palette.faint}
+          size={17}
         />
-        {filterCount > 0 && view === 'all' ? (
-          <Chip
-            label="Clear filters"
-            selected={false}
-            onPress={() => {
-              setFirmInput('');
-              setFilters(DEFAULT_FILTERS);
-            }}
-          />
-        ) : null}
+        <TextInput
+          accessibilityLabel="Search firms"
+          placeholder="Search by firm"
+          placeholderTextColor={palette.faint}
+          autoCorrect={false}
+          returnKeyType="search"
+          clearButtonMode="while-editing"
+          value={firmInput}
+          onChangeText={setFirmInput}
+          style={[styles.searchInput, { color: palette.text }]}
+        />
       </View>
+
+      <Segmented
+        options={[
+          ['all', 'All openings'],
+          ['starred', `Starred${stars.list ? ` · ${starred.length}` : ''}`],
+        ]}
+        value={view}
+        onChange={setView}
+      />
 
       {view === 'all' ? (
         <View style={styles.filters}>
+          <ChipRow>
+            {REGIONS.map((region) => (
+              <Chip
+                key={region}
+                label={REGION_LABELS[region]}
+                selected={filters.region === region}
+                onPress={() => setFilters((f) => ({ ...f, region }))}
+              />
+            ))}
+          </ChipRow>
           <ChipRow>
             {TYPES.map((type) => (
               <Chip key={type} label={TYPE_LABELS[type]} selected={filters.types.includes(type)} onPress={() => toggleType(type)} />
@@ -157,16 +167,17 @@ export default function TrackerScreen() {
               />
             ))}
           </ChipRow>
-          <ChipRow>
-            {REGIONS.map((region) => (
-              <Chip
-                key={region}
-                label={REGION_LABELS[region]}
-                selected={filters.region === region}
-                onPress={() => setFilters((f) => ({ ...f, region }))}
-              />
-            ))}
-          </ChipRow>
+          {filterCount > 0 ? (
+            <Pressable
+              accessibilityRole="button"
+              hitSlop={8}
+              onPress={() => {
+                setFirmInput('');
+                setFilters(DEFAULT_FILTERS);
+              }}>
+              <Text style={[styles.clear, { color: palette.tint }]}>Clear filters</Text>
+            </Pressable>
+          ) : null}
         </View>
       ) : null}
 
@@ -237,16 +248,22 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.four,
   },
   search: {
-    minHeight: 46,
-    borderRadius: Radius.small,
+    minHeight: 48,
+    borderRadius: 12,
     borderWidth: 1,
-    paddingHorizontal: Spacing.four,
-    fontSize: 16,
-  },
-  segment: {
+    paddingHorizontal: 14,
     flexDirection: 'row',
+    alignItems: 'center',
     gap: Spacing.two,
-    flexWrap: 'wrap',
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    paddingVertical: 12,
+  },
+  clear: {
+    fontSize: 14,
+    fontWeight: '600',
   },
   filters: {
     gap: Spacing.two,

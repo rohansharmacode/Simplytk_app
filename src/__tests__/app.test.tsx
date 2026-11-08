@@ -277,7 +277,7 @@ describe('signing in', () => {
     setSessionForTests(null);
     const { app } = await launch('/tracker');
     expect(app.getPathname()).toBe('/sign-in');
-    expect(screen.getByText('Same account as the website.', { exact: false })).toBeTruthy();
+    expect(screen.getByText('Your stars, streak and scores are the same here and on simplytk.com.')).toBeTruthy();
     expect(Queries.fetchOpenings).not.toHaveBeenCalled();
   });
 
@@ -356,10 +356,10 @@ describe('Home', () => {
   it('shows the streak, today’s challenge, the league place and starred openings', async () => {
     jest.mocked(Queries.fetchStarred).mockResolvedValue([OPENING] as never);
     await launch();
-    expect(screen.getAllByText('6').length).toBeGreaterThan(0);
-    expect(screen.getByText('play today to keep it')).toBeTruthy();
+    expect(screen.getAllByText('6 days').length).toBeGreaterThan(0);
+    expect(screen.getByText('Play today to keep it')).toBeTruthy();
     expect(screen.getByText('#4')).toBeTruthy();
-    expect(screen.getAllByText('Daily #210').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('#210').length).toBeGreaterThan(0);
     // Starred openings show on Home and in the Tracker's starred list.
     expect(screen.getAllByText('Spring Week 2027').length).toBeGreaterThan(0);
     expect(mountedWebViews()).toEqual([]);

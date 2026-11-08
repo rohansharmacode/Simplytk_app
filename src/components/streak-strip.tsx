@@ -1,5 +1,6 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
+import { Text } from '@/components/text';
 import { Spacing } from '@/constants/theme';
 import { usePalette } from '@/hooks/use-palette';
 import type { Streak } from '@/lib/site-api';
@@ -19,8 +20,8 @@ export function StreakStrip({ streak }: { streak: Streak }) {
               style={[
                 styles.dot,
                 day.played
-                  ? { backgroundColor: day.frozen ? 'transparent' : palette.tint, borderColor: palette.tint }
-                  : { backgroundColor: 'transparent', borderColor: palette.hair },
+                  ? { backgroundColor: day.frozen ? palette.tintSoft : palette.tint, borderColor: palette.tint }
+                  : { backgroundColor: palette.raised, borderColor: palette.raised },
               ]}
             />
             <Text style={[styles.label, { color: palette.faint }]}>{weekday}</Text>
@@ -42,12 +43,13 @@ const styles = StyleSheet.create({
     gap: Spacing.one,
   },
   dot: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    borderWidth: 2,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    borderWidth: 1.5,
   },
   label: {
     fontSize: 11,
+    fontWeight: '500',
   },
 });

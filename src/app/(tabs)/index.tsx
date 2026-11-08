@@ -1,10 +1,11 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { OpeningCard } from '@/components/opening-card';
 import { StreakStrip } from '@/components/streak-strip';
-import { Button, Card, Empty, Kicker, Screen, SectionHeader, Stat, Title } from '@/components/ui';
+import { Text } from '@/components/text';
+import { Button, Card, Empty, IconTile, Screen, SectionHeader, Stat, Title, Wordmark } from '@/components/ui';
 import { Spacing, Tabular } from '@/constants/theme';
 import { usePalette } from '@/hooks/use-palette';
 import { formatDuration } from '@/lib/daily/answers';
@@ -13,7 +14,7 @@ import { leagueLine, timeLeft, zoneLabel } from '@/lib/leaderboard';
 import { useSession } from '@/lib/session';
 import { hideSplash } from '@/lib/splash';
 import { loadStars, useStars } from '@/lib/stars';
-import { upcomingStarred } from '@/lib/tracker/openings';
+import { daysLeft, upcomingStarred } from '@/lib/tracker/openings';
 import { openWebPage } from '@/lib/web-pages';
 
 /** How many starred openings Home lists before "See all". */
@@ -21,9 +22,9 @@ const STARRED_ON_HOME = 4;
 
 function greeting(now: Date) {
   const hour = Number(now.toLocaleString('en-GB', { hour: 'numeric', hour12: false, timeZone: 'Europe/London' }));
-  if (hour < 12) return 'Good morning.';
-  if (hour < 18) return 'Good afternoon.';
-  return 'Good evening.';
+  if (hour < 12) return 'Good morning';
+  if (hour < 18) return 'Good afternoon';
+  return 'Good evening';
 }
 
 /**
@@ -54,31 +55,53 @@ export default function HomeScreen() {
   const upcoming = useMemo(() => upcomingStarred(stars.list ?? [], new Date()), [stars.list]);
   const name = (session?.user.user_metadata?.full_name as string | undefined)?.split(' ')[0];
 
+  const closingThisWeek = upcoming.filter((o) => {
+    if (!o.deadline) return false;
+    const left = daysLeft(o.deadline, now);
+    return left >= 0 && left <= 7;
+  }).length;
+
   return (
     <Screen refreshing={refreshing} onRefresh={refresh}>
-      <Title kicker="simplytk" title={greeting(now)} subtitle={name ? `Here’s your day, ${name}.` : 'Here’s your day.'} />
+      <View style={styles.brand}>
+        <Wordmark />
+      </View>
+
+      <Title
+        title={name ? `${greeting(now)}, ${name}` : greeting(now)}
+        subtitle={
+          closingThisWeek > 0
+            ? `${closingThisWeek} starred ${closingThisWeek === 1 ? 'opening closes' : 'openings close'} this week.`
+            : undefined
+        }
+      />
 
       <View style={styles.stats}>
         <Card style={styles.statCard} onPress={() => router.navigate('/daily')} accessibilityLabel="Streak">
-          <Kicker color={palette.textSecondary}>Streak</Kicker>
+          <IconTile icon={{ ios: 'flame.fill', android: 'local_fire_department' }} color={palette.warning} />
           <Stat
-            value={streak ? String(streak.current) : '–'}
-            label={streak?.atRisk ? 'play today to keep it' : streak?.current === 1 ? 'day' : 'days'}
+            value={streak ? `${streak.current} ${streak.current === 1 ? 'day' : 'days'}` : '–'}
+            label={streak?.atRisk ? 'Play today to keep it' : 'Daily streak'}
             color={streak?.atRisk ? palette.warning : undefined}
           />
         </Card>
         <Card style={styles.statCard} onPress={() => router.navigate('/ranks?board=league')} accessibilityLabel="League">
-          <Kicker color={palette.textSecondary}>League</Kicker>
+          <IconTile icon={{ ios: 'trophy.fill', android: 'trophy' }} />
           {league ? (
             <Stat value={`#${league.you.rank}`} label={leagueLine(league).replace(/^\S+ /, '')} />
           ) : (
-            <Stat value="–" label={missing ? 'on the website' : 'loading'} />
+            <Stat value="–" label={missing ? 'On the website' : 'Weekly league'} />
           )}
         </Card>
       </View>
 
       <Card style={styles.daily}>
-        <Kicker>{daily ? `Daily #${daily.number}` : 'Daily challenge'}</Kicker>
+        <View style={styles.dailyHead}>
+          <Text style={[styles.dailyTitle, { color: palette.text }]}>Daily Challenge</Text>
+          {daily ? (
+            <Text style={[styles.dailyNumber, Tabular, { color: palette.textSecondary }]}>#{daily.number}</Text>
+          ) : null}
+        </View>
         {missing ? (
           <>
             <Text style={[styles.body, { color: palette.textSecondary }]}>
@@ -98,8 +121,10 @@ export default function HomeScreen() {
           </>
         ) : (
           <>
-            <Text style={[styles.dailyTitle, { color: palette.text }]}>
-              {daily ? `${daily.total} questions, one go.` : 'Today’s questions are waiting.'}
+            <Text style={[styles.body, { color: palette.textSecondary }]}>
+              {daily
+                ? `${daily.total} quick questions, the same for everyone. Your time is the tiebreaker.`
+                : 'Today’s questions are waiting.'}
             </Text>
             <Button label="Start challenge" onPress={() => router.push('/challenge')} />
           </>
@@ -108,7 +133,7 @@ export default function HomeScreen() {
       </Card>
 
       <SectionHeader
-        title="Starred · closing soonest"
+        title="Starred"
         action={upcoming.length > STARRED_ON_HOME ? { label: 'See all', onPress: () => router.navigate('/tracker') } : undefined}
       />
       {stars.list === null ? null : upcoming.length === 0 ? (
@@ -127,7 +152,7 @@ export default function HomeScreen() {
 
       {league ? (
         <Text style={[styles.foot, Tabular, { color: palette.faint }]}>
-          {leagueLine(league)} · {zoneLabel(league.you.zone, league.tier)} · {timeLeft(league.endsAt, now)}
+          League resets in {timeLeft(league.endsAt, now).replace(' left', '')} · {zoneLabel(league.you.zone, league.tier)}
         </Text>
       ) : null}
     </Screen>
@@ -135,25 +160,38 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
+  brand: {
+    marginBottom: -Spacing.two,
+  },
   stats: {
     flexDirection: 'row',
     gap: Spacing.three,
   },
   statCard: {
     flex: 1,
-    gap: Spacing.two,
+    gap: Spacing.three,
   },
   daily: {
     gap: Spacing.four,
+    padding: 18,
+  },
+  dailyHead: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
   },
   dailyTitle: {
     fontSize: 20,
-    fontWeight: '600',
+    fontWeight: '700',
     letterSpacing: -0.4,
   },
+  dailyNumber: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
   dailyScore: {
-    fontSize: 36,
-    fontWeight: '600',
+    fontSize: 34,
+    fontWeight: '700',
     letterSpacing: -1.2,
   },
   body: {

@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { DrillShell } from '@/components/drills/drill-shell';
+import { Text, TextInput } from '@/components/text';
 import { Radius, Spacing } from '@/constants/theme';
 import { usePalette } from '@/hooks/use-palette';
 import { MENTAL_MATHS, isMathsAnswer, nextMathsQuestion } from '@/lib/drills/mental-maths';

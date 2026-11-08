@@ -1,8 +1,9 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { StreakStrip } from '@/components/streak-strip';
+import { Text } from '@/components/text';
 import { Button, Card, Empty, Kicker, Loading, Screen, Stat, Title } from '@/components/ui';
 import { Spacing, Tabular } from '@/constants/theme';
 import { usePalette } from '@/hooks/use-palette';
@@ -35,9 +36,8 @@ export default function DailyScreen() {
   return (
     <Screen refreshing={refreshing} onRefresh={refresh}>
       <Title
-        kicker={daily ? `Daily #${daily.number}` : 'Daily challenge'}
-        title={`${daily?.total ?? 20} questions.`}
-        subtitle="Same set for everyone, every day."
+        title="Daily Challenge"
+        subtitle={`${daily ? `#${daily.number} · ` : ''}${daily?.total ?? 20} questions, the same set for everyone.`}
       />
 
       {!loaded ? <Loading /> : null}
@@ -99,10 +99,10 @@ const styles = StyleSheet.create({
     gap: Spacing.four,
   },
   score: {
-    fontSize: 48,
-    lineHeight: 52,
-    fontWeight: '600',
-    letterSpacing: -1.8,
+    fontSize: 44,
+    lineHeight: 50,
+    fontWeight: '700',
+    letterSpacing: -1.4,
   },
   body: {
     fontSize: 15,

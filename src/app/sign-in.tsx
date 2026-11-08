@@ -2,18 +2,12 @@ import * as AppleAuthentication from 'expo-apple-authentication';
 import * as Crypto from 'expo-crypto';
 import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useState } from 'react';
-import {
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
+
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Button, Chip, Kicker } from '@/components/ui';
+import { Text, TextInput } from '@/components/text';
+import { Button, Chip, Segmented, Wordmark } from '@/components/ui';
 import { Radius, Spacing } from '@/constants/theme';
 import { usePalette, useScheme } from '@/hooks/use-palette';
 import { GOOGLE_RETURN_URL, googleSignInUrl, readOAuthReturn } from '@/lib/google';
@@ -176,10 +170,9 @@ export default function SignInScreen() {
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <View style={styles.head}>
-            <Kicker>simplytk</Kicker>
+            <Wordmark size={26} />
             <Text accessibilityRole="header" style={[styles.title, { color: palette.text }]}>
-              Sign in.
-              <Text style={{ color: palette.textSecondary }}>{'\n'}Same account as the website.</Text>
+              Welcome back
             </Text>
             <Text style={[styles.lede, { color: palette.textSecondary }]}>
               Your stars, streak and scores are the same here and on simplytk.com.
@@ -187,10 +180,17 @@ export default function SignInScreen() {
           </View>
 
           <View style={styles.form}>
-            <View style={styles.methods}>
-              <Chip label="Email" selected={method === 'email'} onPress={() => { setMethod('email'); setError(null); }} />
-              <Chip label="Phone" selected={method === 'phone'} onPress={() => { setMethod('phone'); setError(null); }} />
-            </View>
+            <Segmented
+              options={[
+                ['email', 'Email'],
+                ['phone', 'Phone'],
+              ]}
+              value={method}
+              onChange={(next) => {
+                setMethod(next);
+                setError(null);
+              }}
+            />
             {method === 'email' ? (
               <>
                 <TextInput
@@ -330,10 +330,11 @@ const styles = StyleSheet.create({
     gap: Spacing.three,
   },
   title: {
-    fontSize: 36,
-    lineHeight: 40,
-    fontWeight: '600',
-    letterSpacing: -1.2,
+    fontSize: 32,
+    lineHeight: 38,
+    fontWeight: '700',
+    letterSpacing: -0.9,
+    marginTop: Spacing.three,
   },
   lede: {
     fontSize: 16,

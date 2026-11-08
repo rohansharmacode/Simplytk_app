@@ -2,10 +2,13 @@ import Constants from 'expo-constants';
 import { router, useFocusEffect } from 'expo-router';
 import { SymbolView, type AndroidSymbol, type SFSymbol } from 'expo-symbols';
 import { Fragment } from 'react';
-import { Alert, Image, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Radius, Spacing } from '@/constants/theme';
+import { Text } from '@/components/text';
+import { IconTile, Wordmark } from '@/components/ui';
+import { cardShadow, Radius, Spacing } from '@/constants/theme';
 import { usePalette } from '@/hooks/use-palette';
 import { openOutside, shareLink } from '@/lib/open';
 import { signOut } from '@/lib/session';
@@ -118,13 +121,8 @@ export default function MoreScreen() {
       contentContainerStyle={[styles.content, { paddingTop: topInset + Spacing.four }]}
       contentInsetAdjustmentBehavior="automatic">
       <View style={styles.header}>
-        <Image source={require('@/assets/images/logo.png')} style={styles.logo} />
-        <View style={styles.headerText}>
-          <Text style={[styles.brand, { color: palette.text }]}>simplytk</Text>
-          <Text style={[styles.tagline, { color: palette.textSecondary }]}>
-            Find the role. Win the offer.
-          </Text>
-        </View>
+        <Wordmark size={26} />
+        <Text style={[styles.tagline, { color: palette.textSecondary }]}>Find the role. Win the offer.</Text>
       </View>
 
       {SECTIONS.map((section) => (
@@ -133,7 +131,7 @@ export default function MoreScreen() {
             {section.title.toUpperCase()}
           </Text>
           <View
-            style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+            style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }, cardShadow(palette.shadow)]}>
             {section.items.map((item, index) => (
               <Fragment key={item.label}>
                 {index > 0 && (
@@ -146,13 +144,8 @@ export default function MoreScreen() {
                     styles.row,
                     pressed && { backgroundColor: palette.muted },
                   ]}>
-                  <SymbolView
-                    name={{ ios: item.icon.ios, android: item.icon.android, web: item.icon.android }}
-                    tintColor={palette.tint}
-                    size={22}
-                    style={styles.icon}
-                  />
-                  <Text style={[styles.label, { color: palette.text }]}>{item.label}</Text>
+                  <IconTile icon={item.icon} />
+                  <Text style={[styles.label, { color: palette.text, fontWeight: '500' }]}>{item.label}</Text>
                   {'path' in item && (
                     <SymbolView
                       name={{ ios: 'chevron.right', android: 'chevron_right', web: 'chevron_right' }}
@@ -181,20 +174,8 @@ const styles = StyleSheet.create({
     gap: Spacing.five,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.four,
-  },
-  logo: {
-    width: 56,
-    height: 56,
-  },
-  headerText: {
-    gap: 2,
-  },
-  brand: {
-    fontSize: 28,
-    fontWeight: '700',
+    gap: Spacing.two,
+    paddingHorizontal: Spacing.one,
   },
   tagline: {
     fontSize: 15,
@@ -210,27 +191,23 @@ const styles = StyleSheet.create({
   },
   card: {
     borderRadius: Radius.card,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 1,
     overflow: 'hidden',
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    minHeight: 48,
+    minHeight: 56,
     paddingHorizontal: Spacing.four,
     gap: Spacing.three,
-  },
-  icon: {
-    width: 24,
-    height: 24,
   },
   label: {
     flex: 1,
     fontSize: 16,
   },
   separator: {
-    height: StyleSheet.hairlineWidth,
-    marginLeft: Spacing.four + 24 + Spacing.three,
+    height: 1,
+    marginLeft: Spacing.four + 36 + Spacing.three,
   },
   footer: {
     fontSize: 13,

@@ -84,7 +84,8 @@
       "expo-font",
       "expo-sharing",
       "expo-sqlite",
-      "expo-apple-authentication"
+      "expo-apple-authentication",
+      "expo-asset"
     ],
     "experiments": {
       "typedRoutes": true,

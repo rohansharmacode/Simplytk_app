@@ -1,8 +1,9 @@
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { StarButton } from '@/components/opening-card';
+import { Text } from '@/components/text';
 import { Button, Card, Empty, Kicker, Loading, Screen } from '@/components/ui';
 import { Spacing, Tabular } from '@/constants/theme';
 import { usePalette } from '@/hooks/use-palette';
@@ -132,10 +133,10 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
   },
   title: {
-    fontSize: 28,
-    lineHeight: 33,
-    fontWeight: '600',
-    letterSpacing: -0.8,
+    fontSize: 26,
+    lineHeight: 32,
+    fontWeight: '700',
+    letterSpacing: -0.6,
   },
   deadline: {
     fontSize: 15,

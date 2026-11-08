@@ -1,9 +1,10 @@
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
-import { Button, Chip, Empty, Loading, Screen, Title } from '@/components/ui';
-import { Spacing, Tabular } from '@/constants/theme';
+import { Text } from '@/components/text';
+import { Button, Empty, Loading, Screen, Segmented, Title } from '@/components/ui';
+import { cardShadow, Radius, Spacing, Tabular } from '@/constants/theme';
 import { usePalette } from '@/hooks/use-palette';
 import { formatDuration } from '@/lib/daily/answers';
 import { pinnedRow, playerBoard, TIER_LABELS, timeLeft, universityBoard, zoneLabel } from '@/lib/leaderboard';
@@ -32,6 +33,12 @@ type Loaded =
   | { kind: 'error'; message: string }
   | { kind: 'board'; board: Board }
   | { kind: 'league'; league: League };
+
+const BOARDS: [Which, string][] = [
+  ['daily', 'Daily'],
+  ['universities', 'Universities'],
+  ['league', 'League'],
+];
 
 const DAILY_PERIODS: [DailyPeriod, string][] = [
   ['today', 'Today'],
@@ -126,21 +133,11 @@ export default function RanksScreen() {
 
   return (
     <Screen refreshing={refreshing} onRefresh={refresh} footer={footer}>
-      <Title kicker="Ranks" title="Leaderboards." subtitle="Same boards as the website." />
+      <Title title="Ranks" subtitle="The same leaderboards as the website." />
 
-      <View style={styles.chips}>
-        <Chip label="Daily" selected={which === 'daily'} onPress={() => setWhich('daily')} />
-        <Chip label="Universities" selected={which === 'universities'} onPress={() => setWhich('universities')} />
-        <Chip label="League" selected={which === 'league'} onPress={() => setWhich('league')} />
-      </View>
+      <Segmented options={BOARDS} value={which} onChange={setWhich} />
 
-      {which !== 'league' ? (
-        <View style={styles.chips}>
-          {DAILY_PERIODS.map(([value, label]) => (
-            <Chip key={value} label={label} selected={period === value} onPress={() => setPeriod(value)} />
-          ))}
-        </View>
-      ) : null}
+      {which !== 'league' ? <Segmented options={DAILY_PERIODS} value={period} onChange={setPeriod} /> : null}
 
       {loaded.kind === 'loading' ? <Loading /> : null}
       {loaded.kind === 'error' ? <Text style={{ color: palette.danger }}>{loaded.message}</Text> : null}
@@ -163,7 +160,7 @@ export default function RanksScreen() {
         loaded.board.entries.length === 0 ? (
           <Empty title="No scores yet" body="Be the first on the board." />
         ) : (
-          <View style={[styles.table, { borderColor: palette.hair, backgroundColor: palette.surface }]}>
+          <View style={[styles.table, { borderColor: palette.hair, backgroundColor: palette.surface }, cardShadow(palette.shadow)]}>
             {loaded.board.entries.map((entry, index) => (
               <View key={`${entry.rank}-${index}`} style={index > 0 && { borderTopColor: palette.hair, borderTopWidth: 1 }}>
                 <Row entry={entry} which={which} showTime={period === 'today'} />
@@ -197,7 +194,7 @@ function LeagueTable({ league }: { league: League }) {
       <Text style={[styles.leagueHead, Tabular, { color: palette.textSecondary }]}>
         {TIER_LABELS[league.tier]} league · {timeLeft(league.endsAt, new Date())} · top places promote
       </Text>
-      <View style={[styles.table, { borderColor: palette.hair, backgroundColor: palette.surface }]}>
+      <View style={[styles.table, { borderColor: palette.hair, backgroundColor: palette.surface }, cardShadow(palette.shadow)]}>
         {league.members.map((member, index) => (
           <View key={`${member.rank}-${index}`} style={index > 0 && { borderTopColor: palette.hair, borderTopWidth: 1 }}>
             <Row
@@ -246,7 +243,17 @@ function Row({
     <View
       accessibilityLabel={`${pinned ? 'You: ' : ''}rank ${entry.rank}, ${entry.username ?? 'Anonymous'}, ${score}`}
       style={[styles.row, entry.isYou && !pinned && { backgroundColor: palette.tintSoft }]}>
-      <Text style={[styles.rank, Tabular, { color: entry.isYou ? palette.tint : palette.textSecondary }]}>{entry.rank}</Text>
+      <View style={styles.rankCell}>
+        {entry.rank <= 3 && !pinned ? (
+          <View style={[styles.medal, { backgroundColor: MEDALS[entry.rank - 1] }]}>
+            <Text style={[styles.medalText, Tabular]}>{entry.rank}</Text>
+          </View>
+        ) : (
+          <Text style={[styles.rank, Tabular, { color: entry.isYou ? palette.tint : palette.textSecondary }]}>
+            {entry.rank}
+          </Text>
+        )}
+      </View>
       <View style={styles.name}>
         <Text style={[styles.username, { color: palette.text }]} numberOfLines={1}>
           {name}
@@ -260,20 +267,18 @@ function Row({
           </Text>
         ) : null}
       </View>
-      <Text style={[styles.score, Tabular, { color: palette.text }]}>{score}</Text>
+      <Text style={[styles.score, Tabular, { color: entry.score == null ? palette.faint : palette.tint }]}>{score}</Text>
     </View>
   );
 }
 
+/** Gold, silver and bronze, as the website's podium. */
+const MEDALS = ['#F5B323', '#A7B0BE', '#CD8A55'];
+
 const styles = StyleSheet.create({
-  chips: {
-    flexDirection: 'row',
-    gap: Spacing.two,
-    flexWrap: 'wrap',
-  },
   table: {
     borderWidth: 1,
-    borderRadius: 16,
+    borderRadius: Radius.card,
     overflow: 'hidden',
   },
   row: {
@@ -283,10 +288,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.four,
     minHeight: 52,
   },
+  rankCell: {
+    width: 30,
+    alignItems: 'center',
+  },
   rank: {
-    width: 32,
     fontSize: 15,
     fontWeight: '600',
+  },
+  medal: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  medalText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
   },
   name: {
     flex: 1,
@@ -294,7 +314,7 @@ const styles = StyleSheet.create({
   },
   username: {
     fontSize: 15,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   sub: {
     fontSize: 12,

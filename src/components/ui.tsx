@@ -1,25 +1,17 @@
 import { SymbolView, type AndroidSymbol, type SFSymbol } from 'expo-symbols';
 import type { ReactNode } from 'react';
-import {
-  ActivityIndicator,
-  Platform,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-  type StyleProp,
-  type ViewStyle,
-} from 'react-native';
+import { ActivityIndicator, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { MonoFont, Radius, Spacing, Tabular } from '@/constants/theme';
+import { Text } from '@/components/text';
+import { cardShadow, Radius, Spacing, Tabular } from '@/constants/theme';
 import { usePalette } from '@/hooks/use-palette';
 
 /**
- * The few pieces every native screen is built from, after Orbit: a mono kicker over a
- * two-tone title, quiet hairline cards, pill buttons and chips, tabular numbers.
+ * The pieces every native screen is built from, after simplytk.com: Inter, white cards with
+ * a hairline edge and a soft shadow, blue pill buttons, grey segmented controls, and iOS
+ * large titles. Numbers are tabular so counters don't jitter.
  */
 
 export function Screen({
@@ -57,21 +49,22 @@ export function Screen({
   );
 }
 
+/** A small uppercase label: a section header, or the line above a title. */
 export function Kicker({ children, color }: { children: ReactNode; color?: string }) {
   const palette = usePalette();
-  return <Text style={[styles.kicker, { color: color ?? palette.tint }]}>{children}</Text>;
+  return <Text style={[styles.kicker, { color: color ?? palette.textSecondary }]}>{children}</Text>;
 }
 
-/** Two-tone title: the first line in text, the second in the secondary colour. */
+/** An iOS large title, with an optional short line under it. */
 export function Title({ kicker, title, subtitle }: { kicker?: string; title: string; subtitle?: string }) {
   const palette = usePalette();
   return (
     <View style={styles.titleBlock}>
-      {kicker ? <Kicker>{kicker}</Kicker> : null}
+      {kicker ? <Kicker color={palette.tint}>{kicker}</Kicker> : null}
       <Text accessibilityRole="header" style={[styles.title, { color: palette.text }]}>
         {title}
-        {subtitle ? <Text style={{ color: palette.textSecondary }}>{`\n${subtitle}`}</Text> : null}
       </Text>
+      {subtitle ? <Text style={[styles.subtitle, { color: palette.textSecondary }]}>{subtitle}</Text> : null}
     </View>
   );
 }
@@ -80,7 +73,9 @@ export function SectionHeader({ title, action }: { title: string; action?: { lab
   const palette = usePalette();
   return (
     <View style={styles.sectionHeader}>
-      <Kicker color={palette.textSecondary}>{title}</Kicker>
+      <Text accessibilityRole="header" style={[styles.sectionTitle, { color: palette.text }]}>
+        {title}
+      </Text>
       {action ? (
         <Pressable accessibilityRole="button" hitSlop={8} onPress={action.onPress}>
           <Text style={[styles.sectionAction, { color: palette.tint }]}>{action.label}</Text>
@@ -102,7 +97,12 @@ export function Card({
   accessibilityLabel?: string;
 }) {
   const palette = usePalette();
-  const base = [styles.card, { backgroundColor: palette.surface, borderColor: palette.hair }, style];
+  const base = [
+    styles.card,
+    { backgroundColor: palette.surface, borderColor: palette.hair },
+    cardShadow(palette.shadow),
+    style,
+  ];
   if (!onPress) return <View style={base}>{children}</View>;
   return (
     <Pressable
@@ -143,7 +143,7 @@ export function Button({
         styles.button,
         primary
           ? { backgroundColor: palette.tint }
-          : { backgroundColor: palette.surface, borderColor: palette.hair, borderWidth: 1 },
+          : [{ backgroundColor: palette.surface, borderColor: palette.border, borderWidth: 1 }, cardShadow(palette.shadow)],
         (disabled || busy) && { opacity: 0.5 },
         pressed && { transform: [{ scale: 0.97 }] },
       ]}>
@@ -159,6 +159,7 @@ export function Button({
   );
 }
 
+/** A filter pill: grey when off, filled blue when on. */
 export function Chip({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
   const palette = usePalette();
   return (
@@ -166,14 +167,50 @@ export function Chip({ label, selected, onPress }: { label: string; selected: bo
       accessibilityRole="button"
       accessibilityState={{ selected }}
       onPress={onPress}
-      style={[
+      style={({ pressed }) => [
         styles.chip,
-        selected
-          ? { backgroundColor: palette.tintSoft, borderColor: palette.tint }
-          : { backgroundColor: palette.surface, borderColor: palette.hair },
+        { backgroundColor: selected ? palette.tint : palette.raised },
+        pressed && { opacity: 0.7 },
       ]}>
-      <Text style={[styles.chipLabel, { color: selected ? palette.tint : palette.textSecondary }]}>{label}</Text>
+      <Text style={[styles.chipLabel, { color: selected ? palette.onTint : palette.textSecondary }]}>{label}</Text>
     </Pressable>
+  );
+}
+
+/** The site's segmented control: a grey track with the chosen option raised in white. */
+export function Segmented<T extends string>({
+  options,
+  value,
+  onChange,
+}: {
+  options: readonly (readonly [T, string])[];
+  value: T;
+  onChange: (value: T) => void;
+}) {
+  const palette = usePalette();
+  return (
+    <View accessibilityRole="tablist" style={[styles.segmented, { backgroundColor: palette.raised }]}>
+      {options.map(([option, label]) => {
+        const selected = option === value;
+        return (
+          <Pressable
+            key={option}
+            accessibilityRole="tab"
+            accessibilityState={{ selected }}
+            onPress={() => onChange(option)}
+            style={[
+              styles.segment,
+              selected && [{ backgroundColor: palette.surface }, cardShadow(palette.shadow)],
+            ]}>
+            <Text
+              numberOfLines={1}
+              style={[styles.segmentLabel, { color: selected ? palette.text : palette.textSecondary }]}>
+              {label}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
   );
 }
 
@@ -208,6 +245,27 @@ export function Loading() {
   );
 }
 
+/**
+ * simplytk.com's header logo: the dumbbell mark (public/favicon.svg on the site, drawn here
+ * at its proportions) and the wordmark with "tk" in blue.
+ */
+export function Wordmark({ size = 22 }: { size?: number }) {
+  const palette = usePalette();
+  const u = size / 22; // the mark is 32 × 18 at size 22
+  return (
+    <View accessible accessibilityLabel="simplytk" style={styles.wordmark}>
+      <View style={{ width: 32 * u, height: 18 * u, justifyContent: 'center' }}>
+        <View style={{ position: 'absolute', left: 4 * u, right: 4 * u, height: 7.6 * u, borderRadius: 3.8 * u, backgroundColor: palette.tint }} />
+        <View style={{ position: 'absolute', left: 0, width: 10.2 * u, height: 17.8 * u, borderRadius: 3.8 * u, backgroundColor: palette.tint }} />
+        <View style={{ position: 'absolute', right: 0, width: 10.2 * u, height: 17.8 * u, borderRadius: 3.8 * u, backgroundColor: palette.tint }} />
+      </View>
+      <Text style={[styles.wordmarkText, { fontSize: size, color: palette.text }]}>
+        simply<Text style={{ color: palette.tint }}>tk</Text>
+      </Text>
+    </View>
+  );
+}
+
 export type Icon = { ios: SFSymbol; android: AndroidSymbol };
 
 export function IconTile({ icon, color }: { icon: Icon; color?: string }) {
@@ -232,20 +290,23 @@ const styles = StyleSheet.create({
     gap: Spacing.five,
   },
   kicker: {
-    fontFamily: MonoFont,
-    fontSize: 12,
-    letterSpacing: 1.6,
+    fontSize: 13,
+    letterSpacing: 0.6,
     textTransform: 'uppercase',
-    fontWeight: '500',
+    fontWeight: '600',
   },
   titleBlock: {
-    gap: Spacing.two,
+    gap: 6,
   },
   title: {
     fontSize: 32,
-    lineHeight: 36,
-    fontWeight: '600',
-    letterSpacing: -1,
+    lineHeight: 38,
+    fontWeight: '700',
+    letterSpacing: -0.9,
+  },
+  subtitle: {
+    fontSize: 16,
+    lineHeight: 23,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -253,18 +314,23 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: -Spacing.two,
   },
-  sectionAction: {
-    fontSize: 14,
+  sectionTitle: {
+    fontSize: 20,
     fontWeight: '600',
+    letterSpacing: -0.4,
+  },
+  sectionAction: {
+    fontSize: 15,
+    fontWeight: '500',
   },
   card: {
     borderRadius: Radius.card,
     borderWidth: 1,
-    padding: 18,
+    padding: Spacing.four,
     gap: Spacing.three,
   },
   button: {
-    minHeight: 50,
+    minHeight: 48,
     borderRadius: Radius.pill,
     paddingHorizontal: Spacing.five,
     flexDirection: 'row',
@@ -277,9 +343,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   chip: {
-    minHeight: 36,
+    minHeight: 34,
     borderRadius: Radius.pill,
-    borderWidth: 1,
     paddingHorizontal: 14,
     justifyContent: 'center',
   },
@@ -287,36 +352,65 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
   },
+  segmented: {
+    flexDirection: 'row',
+    borderRadius: 12,
+    padding: 3,
+  },
+  segment: {
+    flex: 1,
+    minHeight: 34,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.two,
+  },
+  segmentLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
   stat: {
     gap: 2,
   },
   statValue: {
-    fontSize: 36,
-    lineHeight: 40,
-    fontWeight: '600',
-    letterSpacing: -1.2,
+    fontSize: 28,
+    lineHeight: 34,
+    fontWeight: '700',
+    letterSpacing: -0.8,
   },
   statLabel: {
     fontSize: 13,
   },
   empty: {
-    alignItems: 'flex-start',
+    alignItems: 'center',
+    paddingVertical: Spacing.five,
   },
   emptyTitle: {
     fontSize: 17,
     fontWeight: '600',
+    textAlign: 'center',
   },
   body: {
     fontSize: 15,
     lineHeight: 21,
+    textAlign: 'center',
   },
   loading: {
     paddingVertical: Spacing.six,
     alignItems: 'center',
   },
+  wordmark: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  wordmarkText: {
+    fontWeight: '700',
+    letterSpacing: -0.6,
+  },
   iconTile: {
-    width: 40,
-    height: 40,
+    width: 36,
+    height: 36,
     borderRadius: Radius.small,
     alignItems: 'center',
     justifyContent: 'center',
