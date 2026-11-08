@@ -61,7 +61,7 @@ export function Screen({
         }>
         {children}
       </ScrollView>
-      {footer}
+      {footer ? <View style={{ paddingBottom: Platform.OS === 'web' ? 96 : 0 }}>{footer}</View> : null}
     </View>
   );
 }
