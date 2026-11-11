@@ -22,7 +22,7 @@ import { usePalette } from '@/hooks/use-palette';
 /**
  * The pieces every native screen is built from, in the style of Apple's own apps and the
  * Orbit app: iOS large titles with round Liquid Glass buttons, white cards with a soft
- * shadow, a navy hero card, coloured icon tiles and tinted action pills. Numbers are
+ * shadow, a blue hero card, coloured icon tiles and tinted action pills. Numbers are
  * tabular so counters don't jitter.
  */
 
@@ -134,16 +134,16 @@ export function GlassButton({ icon, label, onPress }: { icon: Icon; label: strin
   );
 }
 
-/** Colours for text on the navy hero card. */
+/** Colours for text on the blue hero card. */
 export const onHero = {
   text: '#FFFFFF',
-  secondary: 'rgba(255,255,255,0.7)',
+  secondary: 'rgba(255,255,255,0.82)',
   faint: 'rgba(255,255,255,0.5)',
   line: 'rgba(255,255,255,0.12)',
   fill: 'rgba(255,255,255,0.12)',
 };
 
-/** The navy card at the top of a tab, after Orbit's "Coming up" and "Open roles" cards. */
+/** The blue card at the top of a tab, in the logo's colour. */
 export function Hero({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) {
   const palette = usePalette();
   return (
@@ -335,7 +335,7 @@ export function Button({
 }: {
   label: string;
   onPress: () => void;
-  /** `onHero` is the white button on the navy hero card. */
+  /** `onHero` is the white button on the blue hero card. */
   variant?: 'primary' | 'secondary' | 'onHero';
   disabled?: boolean;
   busy?: boolean;
@@ -343,7 +343,7 @@ export function Button({
 }) {
   const palette = usePalette();
   const color =
-    variant === 'primary' ? palette.onTint : variant === 'onHero' ? '#0D1A45' : palette.tint;
+    variant === 'primary' ? palette.onTint : variant === 'onHero' ? '#2B54E8' : palette.tint;
   return (
     <Pressable
       accessibilityRole="button"
@@ -546,7 +546,7 @@ const styles = StyleSheet.create({
     borderRadius: 130,
     top: -60,
     right: -70,
-    backgroundColor: 'rgba(110,145,255,0.22)',
+    backgroundColor: 'rgba(255,255,255,0.10)',
   },
   heroStats: {
     flexDirection: 'row',

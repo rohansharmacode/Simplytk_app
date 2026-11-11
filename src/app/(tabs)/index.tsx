@@ -47,7 +47,7 @@ function today(now: Date) {
 }
 
 /**
- * Home, laid out like Orbit's: today's challenge on the navy card with the numbers that
+ * Home, laid out like Orbit's: today's challenge on the blue card with the numbers that
  * matter under it, then what needs doing (starred openings about to close, a streak at
  * risk), the week at a glance, and the starred openings.
  */
@@ -190,7 +190,7 @@ export default function HomeScreen() {
           {streak ? <StreakStrip streak={streak} height={30} /> : null}
         </Card>
         <Card style={styles.glanceCard} onPress={() => router.navigate('/ranks?board=league')} accessibilityLabel="League">
-          <Kicker color={palette.purple}>League</Kicker>
+          <Kicker color={palette.tint}>League</Kicker>
           <Text style={[styles.glanceValue, Tabular, { color: palette.text }]}>
             {league ? `#${league.you.rank}` : '–'}
             {league ? (
@@ -199,7 +199,7 @@ export default function HomeScreen() {
           </Text>
           <Text style={[styles.glanceNote, { color: palette.textSecondary }]} numberOfLines={2}>
             {league
-              ? `${zoneLabel(league.you.zone, league.tier)} · resets in ${timeLeft(league.endsAt, now).replace(' left', '')}`
+              ? `${zoneLabel(league.you.zone, league.tier)} · ${timeLeft(league.endsAt, now)}`
               : 'Weekly league'}
           </Text>
         </Card>

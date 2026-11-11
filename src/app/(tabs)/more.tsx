@@ -34,7 +34,7 @@ const SECTIONS: Section[] = [
   },
   {
     title: 'AI tools',
-    tone: 'purple',
+    tone: 'blue',
     items: [
       { label: 'CV rater', path: '/cv-rater', icon: { ios: 'doc.text.magnifyingglass', android: 'description' } },
       { label: 'Cover letter', path: '/cover-letter', icon: { ios: 'envelope.open', android: 'drafts' } },

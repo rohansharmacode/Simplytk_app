@@ -92,13 +92,13 @@ export default function DailyScreen() {
         </>
       ) : null}
 
-      <SectionHeader title="What’s in it" icon={{ ios: 'square.grid.2x2.fill', android: 'grid_view' }} tone="purple" />
+      <SectionHeader title="What’s in it" icon={{ ios: 'square.grid.2x2.fill', android: 'grid_view' }} tone="blue" />
       <Group>
         {[
           <Row key="seq" icon={{ ios: 'arrow.right', android: 'arrow_forward' }} tone="blue" title="Number sequences" subtitle="Find what comes next" />,
           <Row key="maths" icon={{ ios: 'plus.forwardslash.minus', android: 'calculate' }} tone="green" title="Mental arithmetic" subtitle="Quick sums, no calculator" />,
           <Row key="frac" icon={{ ios: 'divide', android: 'percent' }} tone="amber" title="Fractions" subtitle="Simplify and compare" />,
-          <Row key="reason" icon={{ ios: 'lightbulb.fill', android: 'lightbulb' }} tone="purple" title="Reasoning" subtitle="Pick the right answer" />,
+          <Row key="reason" icon={{ ios: 'lightbulb.fill', android: 'lightbulb' }} tone="blue" title="Reasoning" subtitle="Pick the right answer" />,
           <Row
             key="board"
             icon={{ ios: 'trophy.fill', android: 'emoji_events' }}
