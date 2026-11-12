@@ -1,12 +1,15 @@
 import { Stack, useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { Alert, StyleSheet, View } from 'react-native';
 
 import { StarButton } from '@/components/opening-card';
+import { StageSheet } from '@/components/stage-sheet';
 import { Text } from '@/components/text';
 import { Button, Card, Empty, Kicker, Loading, Screen } from '@/components/ui';
 import { Spacing, Tabular } from '@/constants/theme';
 import { usePalette } from '@/hooks/use-palette';
+import { fetchApplicationForJob, setStage, trackOpening, type Application } from '@/lib/applications/queries';
+import { STAGE_LABELS, stageOf, type ApplicationStage } from '@/lib/applications/stages';
 import { openOutside, shareLink } from '@/lib/open';
 import { SITE_ORIGIN } from '@/lib/site';
 import { hideSplash } from '@/lib/splash';
@@ -35,8 +38,27 @@ export default function OpeningScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [opening, setOpening] = useState<Opening | null | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
+  // The student's row in their application tracker: undefined while loading, null if none.
+  const [application, setApplication] = useState<Application | null | undefined>(undefined);
+  const [picking, setPicking] = useState(false);
 
   useEffect(hideSplash, []);
+
+  const loadApplication = useCallback(() => {
+    fetchApplicationForJob(id).then(setApplication, () => setApplication(null));
+  }, [id]);
+  useEffect(loadApplication, [loadApplication]);
+
+  async function pick(stage: ApplicationStage) {
+    setPicking(false);
+    try {
+      if (application) await setStage(application, stage);
+      else await trackOpening(id, stage);
+      loadApplication();
+    } catch (failure) {
+      Alert.alert('Couldn’t save that', failure instanceof Error ? failure.message : String(failure));
+    }
+  }
 
   useEffect(() => {
     let live = true;
@@ -105,6 +127,13 @@ export default function OpeningScreen() {
           />
           <Button
             variant="secondary"
+            label={application ? `In your tracker: ${STAGE_LABELS[stageOf(application)]}` : 'Track application'}
+            icon={application ? { ios: 'checklist.checked', android: 'checklist' } : { ios: 'plus', android: 'add' }}
+            disabled={application === undefined}
+            onPress={() => setPicking(true)}
+          />
+          <Button
+            variant="secondary"
             label="Share"
             icon={{ ios: 'square.and.arrow.up', android: 'share' }}
             onPress={() => void shareLink({ title: `${opening.companies?.name ?? ''} ${opening.title}`.trim(), url: openingUrl(opening) })}
@@ -123,6 +152,15 @@ export default function OpeningScreen() {
         <Text style={[styles.note, { color: palette.textSecondary }]}>
           Starred openings get a notification a week before the deadline, two days before and on the day.
         </Text>
+
+        <StageSheet
+          visible={picking}
+          title={opening.companies?.name ?? 'Opening'}
+          subtitle={opening.title}
+          current={application ? stageOf(application) : null}
+          onPick={(stage) => void pick(stage)}
+          onClose={() => setPicking(false)}
+        />
       </Screen>
     </>
   );

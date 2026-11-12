@@ -50,7 +50,13 @@ export function DeadlinePill({ deadline, now }: { deadline: string | null; now: 
 }
 
 /** The firm's logo, or its initial on a tinted tile while there isn't one. */
-export function FirmLogo({ opening, size = 44 }: { opening: Opening; size?: number }) {
+export function FirmLogo({
+  opening,
+  size = 44,
+}: {
+  opening: { companies: { name: string; logo_url: string | null } | null };
+  size?: number;
+}) {
   const palette = usePalette();
   const firm = opening.companies?.name ?? '';
   const logo = opening.companies?.logo_url;
@@ -70,7 +76,16 @@ export function FirmLogo({ opening, size = 44 }: { opening: Opening; size?: numb
 }
 
 /** One opening, laid out like a card in Orbit's Discover feed. */
-export function OpeningCard({ opening, now }: { opening: Opening; now: Date }) {
+export function OpeningCard({
+  opening,
+  now,
+  note,
+}: {
+  opening: Opening;
+  now: Date;
+  /** A line over the card, e.g. when the live feed detected it; `fresh` adds a green dot. */
+  note?: { text: string; fresh?: boolean };
+}) {
   const palette = usePalette();
   const firm = opening.companies?.name ?? '';
   const type = typeLabel(opening.programme_type);
@@ -79,6 +94,12 @@ export function OpeningCard({ opening, now }: { opening: Opening; now: Date }) {
       accessibilityLabel={`${firm} ${opening.title}`}
       onPress={() => router.push({ pathname: '/opening/[id]', params: { id: opening.id } })}
       style={styles.card}>
+      {note ? (
+        <View style={styles.note}>
+          {note.fresh ? <View style={[styles.dot, { backgroundColor: palette.success }]} /> : null}
+          <Text style={[styles.noteText, { color: note.fresh ? palette.success : palette.textSecondary }]}>{note.text}</Text>
+        </View>
+      ) : null}
       <View style={styles.row}>
         <FirmLogo opening={opening} />
         <View style={styles.text}>
@@ -130,6 +151,22 @@ export function OpeningCard({ opening, now }: { opening: Opening; now: Date }) {
 }
 
 const styles = StyleSheet.create({
+  note: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: -4,
+  },
+  dot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+  },
+  noteText: {
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 0.2,
+  },
   card: {
     gap: 14,
     paddingVertical: 14,

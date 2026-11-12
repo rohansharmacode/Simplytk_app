@@ -48,8 +48,19 @@ export function typeLabel(type: string | null | undefined): string {
   return TYPE_LABELS[type] ?? type.replace(/_/g, ' ');
 }
 
-/** School-age programmes live on the website's separate pre-university tracker. */
-export const PRE_UNI_TYPES = ['work_experience', 'summer_school', 'access_programme', 'apprenticeship'];
+/** School-age programmes: the website's separate pre-university tracker. */
+export const PRE_UNI_TYPES = ['work_experience', 'summer_school', 'access_programme', 'apprenticeship'] as const;
+export type PreUniType = (typeof PRE_UNI_TYPES)[number];
+
+/** University openings, or the pre-university tracker's school-age ones. */
+export type Stage = 'uni' | 'preuni';
+
+export const STAGE_LABELS: Record<Stage, string> = { uni: 'University', preuni: 'Pre-uni' };
+
+/** The type chips each stage offers. */
+export function typesFor(stage: Stage): readonly (OpeningType | PreUniType)[] {
+  return stage === 'preuni' ? PRE_UNI_TYPES : TYPES;
+}
 
 export const DEADLINE_FILTERS = ['any', 'week', 'month'] as const;
 export type DeadlineFilter = (typeof DEADLINE_FILTERS)[number];
@@ -61,8 +72,10 @@ export const DEADLINE_LABELS: Record<DeadlineFilter, string> = {
 };
 
 export type Filters = {
+  /** University or pre-university openings. A view, not counted as a filter. */
+  stage?: Stage;
   region: Region;
-  types: OpeningType[];
+  types: (OpeningType | PreUniType)[];
   /** Firm name search; empty for every firm. */
   firm: string;
   deadline: DeadlineFilter;

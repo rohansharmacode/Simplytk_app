@@ -21,8 +21,17 @@ describe('hrefForSitePath', () => {
   });
 
   it('keeps dashboard pages the app has no screen for on the web', () => {
-    expect(hrefForSitePath('/dashboard/applications')).toBe(page('/dashboard/applications'));
     expect(hrefForSitePath('/dashboard/settings')).toBe(page('/dashboard/settings'));
+    expect(hrefForSitePath('/dashboard/friends')).toBe(page('/dashboard/friends'));
+  });
+
+  it('opens the boards and trackers the app has its own screens for', () => {
+    expect(hrefForSitePath('/dashboard/applications')).toBe('/applications');
+    expect(hrefForSitePath('/expected-openings')).toBe('/opening-soon');
+    expect(hrefForSitePath('/live')).toBe('/live');
+    expect(hrefForSitePath('/opportunities?region=us')).toBe('/opportunities');
+    expect(hrefForSitePath('/pre-uni-tracker')).toBe('/tracker?stage=preuni');
+    expect(hrefForSitePath('/progress')).toBe('/progress');
   });
 
   it('opens everything else as a page', () => {
@@ -75,7 +84,8 @@ describe('hrefForIncomingUrl', () => {
 
   it('maps bare site paths', () => {
     expect(hrefForIncomingUrl('/companies/optiver')).toBe(page('/companies/optiver'));
-    expect(hrefForIncomingUrl('/progress')).toBe(page('/progress'));
+    expect(hrefForIncomingUrl('/cv-rater')).toBe(page('/cv-rater'));
+    expect(hrefForIncomingUrl('/live')).toBe('/live');
   });
 
   it('falls back to Home for anything else', () => {

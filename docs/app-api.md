@@ -1,8 +1,9 @@
 # The app's endpoints on simplytk.com
 
 The native app reads openings and stars straight from the website's Lovable Cloud project
-(`jobs` and `companies` are public to read, `saved_jobs` is each student's own under
-row-level security), and signs in through its auth with the same accounts. Everything else
+(`jobs`, `companies`, `expected_openings` and `opportunities` are public to read;
+`saved_jobs` and `applications` are each student's own under row-level security, and the
+app writes `applications` the way the site's `src/lib/user-tracker.ts` does), and signs in through its auth with the same accounts. Everything else
 runs server code that only the website has, behind a small JSON API under
 `https://simplytk.com/api/app/`.
 

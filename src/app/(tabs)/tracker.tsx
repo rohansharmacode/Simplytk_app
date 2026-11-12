@@ -1,4 +1,4 @@
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
@@ -20,11 +20,14 @@ import {
   DEFAULT_FILTERS,
   REGION_LABELS,
   REGIONS,
+  STAGE_LABELS,
   TYPE_LABELS,
-  TYPES,
+  typesFor,
   upcomingStarred,
   type Filters,
   type OpeningType,
+  type PreUniType,
+  type Stage,
 } from '@/lib/tracker/openings';
 import { fetchOpenings, PAGE_SIZE, type Opening } from '@/lib/tracker/queries';
 
@@ -37,8 +40,11 @@ export default function TrackerScreen() {
   const palette = usePalette();
   const insets = useSafeAreaInsets();
   const topInset = Platform.OS === 'android' ? insets.top : 0;
+  const router = useRouter();
+  const params = useLocalSearchParams<{ stage?: string }>();
   const [view, setView] = useState<View_>('all');
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
+  const stage: Stage = filters.stage ?? 'uni';
   const [firmInput, setFirmInput] = useState('');
   // Rows with the filters they were loaded for; stale rows show as loading.
   const [result, setResult] = useState<{ filters: Filters; rows: Opening[] } | null>(null);
@@ -54,6 +60,17 @@ export default function TrackerScreen() {
   const now = useMemo(() => new Date(), [openings]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useFocusEffect(hideSplash);
+
+  // A link to the pre-university tracker (More, or a simplytk.com link) picks the stage.
+  const [linkedStage, setLinkedStage] = useState<string | undefined>(undefined);
+  if (params.stage !== linkedStage) {
+    setLinkedStage(params.stage);
+    if (params.stage === 'preuni' || params.stage === 'uni') {
+      const next = params.stage;
+      setView('all');
+      setFilters((f) => (f.stage === next ? f : { ...DEFAULT_FILTERS, region: f.region, firm: f.firm, stage: next }));
+    }
+  }
 
   useEffect(() => {
     const timer = setTimeout(() => setFilters((f) => ({ ...f, firm: firmInput })), SEARCH_DELAY_MS);
@@ -98,7 +115,7 @@ export default function TrackerScreen() {
     setLoadingMore(false);
   }
 
-  function toggleType(type: OpeningType) {
+  function toggleType(type: OpeningType | PreUniType) {
     setFilters((f) => ({
       ...f,
       types: f.types.includes(type) ? f.types.filter((t) => t !== type) : [...f.types, type],
@@ -121,7 +138,7 @@ export default function TrackerScreen() {
       <Hero style={styles.hero}>
         <View style={styles.heroHead}>
           <Kicker color={onHero.secondary}>Your tracker</Kicker>
-          <Text style={styles.heroNote}>{REGION_LABELS[filters.region]}</Text>
+          <Text style={styles.heroNote}>{stage === 'preuni' ? `Pre-uni · ${REGION_LABELS[filters.region]}` : REGION_LABELS[filters.region]}</Text>
         </View>
         <HeroStats
           stats={[
@@ -173,7 +190,17 @@ export default function TrackerScreen() {
             ))}
           </ChipRow>
           <ChipRow>
-            {TYPES.map((type) => (
+            {(['uni', 'preuni'] as const).map((option) => (
+              <Chip
+                key={option}
+                label={STAGE_LABELS[option]}
+                selected={stage === option}
+                onPress={() => setFilters((f) => ({ ...f, stage: option, types: [] }))}
+              />
+            ))}
+          </ChipRow>
+          <ChipRow>
+            {typesFor(stage).map((type) => (
               <Chip key={type} label={TYPE_LABELS[type]} selected={filters.types.includes(type)} onPress={() => toggleType(type)} />
             ))}
           </ChipRow>
@@ -187,13 +214,21 @@ export default function TrackerScreen() {
               />
             ))}
           </ChipRow>
+          <Pressable
+            accessibilityRole="button"
+            hitSlop={8}
+            onPress={() => router.push(stage === 'preuni' ? '/opening-soon?stage=preuni' : '/opening-soon')}>
+            <Text style={[styles.clear, { color: palette.tint }]}>
+              {stage === 'preuni' ? 'When school-age programmes usually open' : 'See what’s opening soon'}
+            </Text>
+          </Pressable>
           {filterCount > 0 ? (
             <Pressable
               accessibilityRole="button"
               hitSlop={8}
               onPress={() => {
                 setFirmInput('');
-                setFilters(DEFAULT_FILTERS);
+                setFilters({ ...DEFAULT_FILTERS, stage });
               }}>
               <Text style={[styles.clear, { color: palette.tint }]}>Clear filters</Text>
             </Pressable>

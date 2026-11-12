@@ -11,7 +11,13 @@ import { isOpeningId, openingIdFromSlug } from './tracker/openings';
 /** Site sections that have a native screen. Longest prefix wins. */
 const NATIVE_SECTIONS: [prefix: string, href: string][] = [
   ['/dashboard', '/'],
+  ['/dashboard/applications', '/applications'],
   ['/internship-tracker', '/tracker'],
+  ['/pre-uni-tracker', '/tracker?stage=preuni'],
+  ['/expected-openings', '/opening-soon'],
+  ['/live', '/live'],
+  ['/opportunities', '/opportunities'],
+  ['/progress', '/progress'],
   ['/daily', '/daily'],
   ['/oa-leaderboard', '/ranks'],
   ['/league', '/ranks?board=league'],
@@ -20,8 +26,26 @@ const NATIVE_SECTIONS: [prefix: string, href: string][] = [
 /** Pages under a native section that are still web pages, e.g. account settings. */
 const WEB_UNDER_NATIVE = ['/dashboard/'];
 
+/** Native sections that win over WEB_UNDER_NATIVE. */
+const NATIVE_UNDER_WEB = ['/dashboard/applications'];
+
 /** Routes that exist in the app itself (src/app). */
-const APP_ROUTES = ['/', '/tracker', '/daily', '/ranks', '/more', '/drills', '/page', '/challenge', '/sign-in'];
+const APP_ROUTES = [
+  '/',
+  '/tracker',
+  '/daily',
+  '/ranks',
+  '/more',
+  '/drills',
+  '/page',
+  '/challenge',
+  '/sign-in',
+  '/applications',
+  '/opening-soon',
+  '/live',
+  '/opportunities',
+  '/progress',
+];
 
 function isAppRoute(pathname: string) {
   const play = /^\/play\/([^/]+)$/.exec(pathname);
@@ -43,11 +67,15 @@ function nativeHrefFor(pathname: string): string | null {
     const id = openingIdFromSlug(opening[1]);
     if (id) return `/opening/${id}`;
   }
-  if (WEB_UNDER_NATIVE.some((prefix) => pathname.startsWith(prefix))) return null;
-  for (const [prefix, href] of NATIVE_SECTIONS) {
-    if (pathname === prefix || pathname.startsWith(`${prefix}/`)) return href;
+  const native = NATIVE_UNDER_WEB.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+  if (!native && WEB_UNDER_NATIVE.some((prefix) => pathname.startsWith(prefix))) return null;
+  // Longest prefix wins, so /dashboard/applications beats /dashboard.
+  let best: [prefix: string, href: string] | null = null;
+  for (const entry of NATIVE_SECTIONS) {
+    const [prefix] = entry;
+    if ((pathname === prefix || pathname.startsWith(`${prefix}/`)) && (!best || prefix.length > best[0].length)) best = entry;
   }
-  return null;
+  return best ? best[1] : null;
 }
 
 /**

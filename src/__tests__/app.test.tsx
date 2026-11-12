@@ -12,6 +12,8 @@ import { syncPushToken } from '@/lib/push';
 import { setSessionForTests } from '@/lib/session';
 import * as SiteApi from '@/lib/site-api';
 import { supabase } from '@/lib/supabase';
+import * as Applications from '@/lib/applications/queries';
+import * as Boards from '@/lib/openings/queries';
 import * as Queries from '@/lib/tracker/queries';
 import { mountedWebViews, resetWebViews, type MockWebView } from '@/test/mock-webview';
 
@@ -74,6 +76,22 @@ jest.mock('@/lib/tracker/queries', () => ({
   star: jest.fn(() => Promise.resolve()),
   unstar: jest.fn(() => Promise.resolve()),
 }));
+jest.mock('@/lib/applications/queries', () => ({
+  ...jest.requireActual('@/lib/applications/queries'),
+  fetchApplications: jest.fn(),
+  fetchApplicationForJob: jest.fn(),
+  setStage: jest.fn(() => Promise.resolve()),
+  trackOpening: jest.fn(() => Promise.resolve()),
+  removeApplication: jest.fn(() => Promise.resolve()),
+  fetchSavedOpportunityUrls: jest.fn(),
+  saveOpportunity: jest.fn(() => Promise.resolve()),
+  unsaveOpportunity: jest.fn(() => Promise.resolve()),
+}));
+jest.mock('@/lib/openings/queries', () => ({
+  fetchExpected: jest.fn(),
+  fetchOpportunities: jest.fn(),
+  fetchLiveFeed: jest.fn(),
+}));
 jest.mock('@/lib/site-api', () => ({
   ...jest.requireActual('@/lib/site-api'),
   getDaily: jest.fn(),
@@ -119,6 +137,47 @@ const OPENING = {
   cover_letter_required: false,
   visa_sponsorship: null,
   companies: { name: 'Goldman Sachs', slug: 'goldman-sachs', logo_url: null },
+};
+
+const APPLICATION = {
+  id: 'app-1',
+  job_id: ID,
+  kind: 'internship',
+  status: 'applied',
+  stage_completed_at: null,
+  applied_on: '2026-11-01',
+  updated_at: '2026-11-01T00:00:00Z',
+  manual_company: null,
+  manual_title: null,
+  manual_url: null,
+  starred: false,
+  jobs: { ...OPENING },
+};
+
+const EXPECTED = {
+  id: 'exp-1',
+  company_name: 'Jane Street',
+  programme_type: 'spring_week',
+  last_opened_at: '2025-09-01T09:00:00Z',
+  last_cycle: 2026,
+  evidence_source: 'first_party',
+  expected_on: '2099-09-01',
+  expected_from: '2099-08-22',
+  expected_to: '2099-09-11',
+  confidence: 'high' as const,
+};
+
+const OPPORTUNITY = {
+  id: 'opp-1',
+  name: 'Iris Hacks IV',
+  organiser: 'Iris Hacks',
+  kind: 'hackathon' as const,
+  description: 'A weekend hackathon.',
+  url: 'https://iris-hacks.devpost.com/',
+  location: 'Online',
+  event_date: null,
+  deadline: '2099-08-09T23:59:59Z',
+  created_at: '2026-08-09T06:15:13Z',
 };
 
 const STREAK = {
@@ -175,6 +234,12 @@ beforeEach(() => {
   jest.mocked(Queries.fetchOpenings).mockResolvedValue([OPENING] as never);
   jest.mocked(Queries.fetchOpening).mockResolvedValue(OPENING as never);
   jest.mocked(Queries.fetchStarred).mockResolvedValue([]);
+  jest.mocked(Applications.fetchApplications).mockResolvedValue([APPLICATION] as never);
+  jest.mocked(Applications.fetchApplicationForJob).mockResolvedValue(null);
+  jest.mocked(Applications.fetchSavedOpportunityUrls).mockResolvedValue(new Set());
+  jest.mocked(Boards.fetchExpected).mockResolvedValue([EXPECTED]);
+  jest.mocked(Boards.fetchOpportunities).mockResolvedValue([OPPORTUNITY]);
+  jest.mocked(Boards.fetchLiveFeed).mockResolvedValue([{ ...OPENING, first_seen_at: new Date().toISOString() }] as never);
   jest.mocked(SiteApi.getDaily).mockResolvedValue({
     day: '2026-11-02',
     number: 210,
@@ -418,6 +483,65 @@ describe('Tracker', () => {
     expect(app.getPathname()).toBe(`/opening/${ID}`);
     await press('Apply on the firm’s site');
     expect(openOutside).toHaveBeenCalledWith('https://careers.gs.com/spring', 'browser');
+  });
+});
+
+describe('My applications', () => {
+  it('lists tracked applications by stage and moves one on', async () => {
+    const { app } = await launch('/more');
+    await press('My applications');
+    expect(app.getPathname()).toBe('/applications');
+    // The section header and the row's stage pill.
+    expect(screen.getAllByText('Applied').length).toBeGreaterThanOrEqual(2);
+    await act(async () => {
+      fireEvent.press(screen.getAllByText('Applied').at(-1)!);
+    });
+    await flush();
+    await press('Interview');
+    expect(Applications.setStage).toHaveBeenCalledWith(expect.objectContaining({ id: 'app-1' }), 'interview');
+  });
+
+  it('tracks an opening from its screen', async () => {
+    await launch(`/opening/${ID}`);
+    await press('Track application');
+    await press('Applied');
+    expect(Applications.trackOpening).toHaveBeenCalledWith(ID, 'applied');
+  });
+});
+
+describe('boards', () => {
+  it('shows when programmes are expected to open', async () => {
+    await launch('/opening-soon');
+    expect(screen.getByText('Jane Street')).toBeTruthy();
+    expect(screen.getByText('22 Aug to 11 Sep')).toBeTruthy();
+  });
+
+  it('shows the live feed', async () => {
+    await launch('/live');
+    expect(screen.getAllByText('Today').length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/^Detected \d\d:\d\d · New$/).length).toBe(1);
+  });
+
+  it('saves a startup opportunity to the tracker', async () => {
+    await launch('/opportunities');
+    expect(screen.getByText('Iris Hacks IV')).toBeTruthy();
+    await act(async () => {
+      fireEvent.press(screen.getByLabelText('Save Iris Hacks IV'));
+    });
+    await flush();
+    expect(Applications.saveOpportunity).toHaveBeenCalledWith(expect.objectContaining({ url: 'https://iris-hacks.devpost.com/' }));
+  });
+
+  it('opens the pre-uni tracker from More', async () => {
+    await launch('/more');
+    await press('Pre-uni tracker');
+    expect(Queries.fetchOpenings).toHaveBeenLastCalledWith(expect.objectContaining({ stage: 'preuni', types: [] }), 0);
+  });
+
+  it('shows progress', async () => {
+    await launch('/progress');
+    expect(screen.getByText('Interviews')).toBeTruthy();
+    expect(screen.getByText('#4 in the Silver league')).toBeTruthy();
   });
 });
 

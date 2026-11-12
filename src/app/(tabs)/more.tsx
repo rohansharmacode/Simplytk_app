@@ -1,5 +1,5 @@
 import Constants from 'expo-constants';
-import { router, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect, type Href } from 'expo-router';
 import { type AndroidSymbol, type SFSymbol } from 'expo-symbols';
 import { Alert, Platform, StyleSheet, View } from 'react-native';
 
@@ -15,7 +15,7 @@ import { hideSplash } from '@/lib/splash';
 type Item = {
   label: string;
   icon: { ios: SFSymbol; android: AndroidSymbol };
-} & ({ path: string } | { onPress: () => void });
+} & ({ path: string } | { href: Href } | { onPress: () => void });
 
 type Section = { title: string; tone: Tone; items: Item[] };
 
@@ -24,11 +24,11 @@ const SECTIONS: Section[] = [
     title: 'Applications',
     tone: 'blue',
     items: [
-      { label: 'My applications', path: '/dashboard/applications', icon: { ios: 'checklist', android: 'checklist' } },
-      { label: 'Opening soon', path: '/expected-openings', icon: { ios: 'calendar.badge.clock', android: 'event_upcoming' } },
-      { label: 'Live feed', path: '/live', icon: { ios: 'dot.radiowaves.left.and.right', android: 'sensors' } },
-      { label: 'Startup opportunities', path: '/opportunities', icon: { ios: 'lightbulb', android: 'lightbulb' } },
-      { label: 'Pre-uni tracker', path: '/pre-uni-tracker', icon: { ios: 'graduationcap', android: 'school' } },
+      { label: 'My applications', href: '/applications', icon: { ios: 'checklist', android: 'checklist' } },
+      { label: 'Opening soon', href: '/opening-soon', icon: { ios: 'calendar.badge.clock', android: 'event_upcoming' } },
+      { label: 'Live feed', href: '/live', icon: { ios: 'dot.radiowaves.left.and.right', android: 'sensors' } },
+      { label: 'Startup opportunities', href: '/opportunities', icon: { ios: 'lightbulb', android: 'lightbulb' } },
+      { label: 'Pre-uni tracker', href: '/tracker?stage=preuni', icon: { ios: 'graduationcap', android: 'school' } },
       { label: 'Submit an opening', path: '/submit-opening', icon: { ios: 'plus.circle', android: 'add_circle' } },
     ],
   },
@@ -49,7 +49,7 @@ const SECTIONS: Section[] = [
     tone: 'green',
     items: [
       { label: 'Drills', onPress: () => router.push('/drills'), icon: { ios: 'stopwatch', android: 'timer' } },
-      { label: 'My progress', path: '/progress', icon: { ios: 'chart.line.uptrend.xyaxis', android: 'trending_up' } },
+      { label: 'My progress', href: '/progress', icon: { ios: 'chart.line.uptrend.xyaxis', android: 'trending_up' } },
       { label: '1v1 challenge', path: '/1v1', icon: { ios: 'person.2.wave.2', android: 'sports_kabaddi' } },
       { label: 'Online assessment prep', path: '/oa-prep', icon: { ios: 'puzzlepiece', android: 'extension' } },
       { label: 'Interview course', path: '/interview-course', icon: { ios: 'list.bullet.rectangle', android: 'quiz' } },
@@ -101,6 +101,8 @@ const SECTIONS: Section[] = [
 function open(item: Item) {
   if ('onPress' in item) {
     item.onPress();
+  } else if ('href' in item) {
+    router.navigate(item.href);
   } else {
     router.push({ pathname: '/page', params: { path: item.path, title: item.label } });
   }

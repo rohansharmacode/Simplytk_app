@@ -18,8 +18,10 @@ the same in both places:
   through the website's Lovable Cloud sign-in broker and comes back to
   https://simplytk.com/auth, which an iOS 17.4+ auth session catches through the
   `webcredentials:simplytk.com` associated domain (`src/lib/google.ts`), so it is iOS only.
-- **Openings and stars** are read straight from the website's database (`jobs`,
-  `companies`, `saved_jobs`) under its row-level security. See `src/lib/tracker/queries.ts`.
+- **Openings, stars and the application tracker** are read straight from the website's
+  database (`jobs`, `companies`, `saved_jobs`, `applications`, `expected_openings`,
+  `opportunities`) under its row-level security. See `src/lib/tracker/queries.ts`,
+  `src/lib/applications/queries.ts` and `src/lib/openings/queries.ts`.
 - **The daily challenge, streak, leaderboards, league and push tokens** go through a few
   routes on simplytk.com under `/api/app/`, described in [docs/app-api.md](docs/app-api.md).
   Until the site serves them, those screens offer the website's page instead.
@@ -29,10 +31,10 @@ the same in both places:
 | Tab | What it is |
 | --- | --- |
 | Home | Starred openings closing soonest, today's challenge with a Start button, the streak and the league place. |
-| Tracker | Every opening, filtered by firm, type, deadline and region. Star one for its deadline alerts. Tapping an opening shows it with its apply link. |
+| Tracker | Every opening, filtered by firm, type, deadline and region, for university or pre-uni. Star one for its deadline alerts. Tapping an opening shows it with its apply link and a Track application button. |
 | Daily | Today's challenge: the website's set of questions, a clock, a big number pad, and a review afterwards. |
 | Ranks | The daily challenge’s player and university boards (today, month, all time) and the weekly league, with your own row pinned at the bottom. |
-| More | Drills, progress, 1v1, AI tools, mentoring, guides, account settings and sign out. Web pages open over the tabs. |
+| More | Native screens for My applications (move each one through its stages), Opening soon (when programmes usually open), the Live feed, Startup opportunities, the pre-uni tracker and My progress. Also drills, 1v1, AI tools, mentoring, guides, account settings and sign out; the pages without a native screen yet open in web views over the tabs. |
 
 The look follows Rohan's Orbit design system (mono kickers over two-tone titles, quiet
 hairline cards, one blue accent, tabular numbers) in simplytk's blue, light and dark.

@@ -20,7 +20,7 @@ export type Opening = {
   companies: { name: string; slug: string; logo_url: string | null } | null;
 };
 
-const COLUMNS =
+export const OPENING_COLUMNS =
   'id, title, programme_type, location, deadline, apply_url, status, first_seen_at, cover_letter_required, visa_sponsorship, companies!inner(name, slug, logo_url)';
 
 export const PAGE_SIZE = 30;
@@ -28,7 +28,7 @@ export const PAGE_SIZE = 30;
 export async function fetchOpenings(filters: Filters, page: number, now = new Date()): Promise<Opening[]> {
   let query = supabase
     .from('jobs')
-    .select(COLUMNS)
+    .select(OPENING_COLUMNS)
     .eq('status', 'open')
     .eq('region', filters.region)
     // One row per programme: per-office copies point at the first with variant_of.
@@ -36,6 +36,8 @@ export async function fetchOpenings(filters: Filters, page: number, now = new Da
 
   if (filters.types.length) {
     query = query.in('programme_type', filters.types);
+  } else if (filters.stage === 'preuni') {
+    query = query.in('programme_type', [...PRE_UNI_TYPES]);
   } else {
     query = query.not('programme_type', 'in', `(${PRE_UNI_TYPES.join(',')})`);
   }
@@ -59,7 +61,7 @@ export async function fetchOpenings(filters: Filters, page: number, now = new Da
 }
 
 export async function fetchOpening(id: string): Promise<Opening | null> {
-  const { data, error } = await supabase.from('jobs').select(COLUMNS).eq('id', id).maybeSingle();
+  const { data, error } = await supabase.from('jobs').select(OPENING_COLUMNS).eq('id', id).maybeSingle();
   if (error) throw new Error(error.message);
   return (data as unknown as Opening | null) ?? null;
 }
@@ -68,7 +70,7 @@ export async function fetchOpening(id: string): Promise<Opening | null> {
 export async function fetchStarred(): Promise<Opening[]> {
   const { data, error } = await supabase
     .from('saved_jobs')
-    .select(`created_at, jobs(${COLUMNS})`)
+    .select(`created_at, jobs(${OPENING_COLUMNS})`)
     .order('created_at', { ascending: false })
     .limit(200);
   if (error) throw new Error(error.message);

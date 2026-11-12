@@ -264,6 +264,7 @@ export function Group({ children }: { children: ReactNode[] }) {
 /** One row of a Group: a coloured tile, a title and subtitle, and a pill or a chevron. */
 export function Row({
   icon,
+  leading,
   tone = 'blue',
   title,
   subtitle,
@@ -271,7 +272,9 @@ export function Row({
   chevron,
   onPress,
 }: {
-  icon: Icon;
+  icon?: Icon;
+  /** Shown in place of the icon tile, e.g. a firm's logo. */
+  leading?: ReactNode;
   tone?: Tone;
   title: string;
   subtitle?: string;
@@ -286,7 +289,7 @@ export function Row({
       disabled={!onPress}
       onPress={onPress}
       style={({ pressed }) => [styles.row, pressed && { backgroundColor: palette.muted }]}>
-      <IconTile icon={icon} tone={tone} />
+      {leading ?? (icon ? <IconTile icon={icon} tone={tone} /> : null)}
       <View style={styles.rowText}>
         <Text style={[styles.rowTitle, { color: palette.text }]} numberOfLines={1}>
           {title}

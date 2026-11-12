@@ -110,6 +110,11 @@ export default function RootLayout() {
           />
           <Stack.Screen name="drills" options={{ title: 'Drills' }} />
           <Stack.Screen name="play/[slug]" options={{ title: '' }} />
+          <Stack.Screen name="applications" options={{ title: '' }} />
+          <Stack.Screen name="opening-soon" options={{ title: '' }} />
+          <Stack.Screen name="live" options={{ title: '' }} />
+          <Stack.Screen name="opportunities" options={{ title: '' }} />
+          <Stack.Screen name="progress" options={{ title: '' }} />
         </Stack.Protected>
         <Stack.Screen name="page" options={{ title: '' }} />
       </Stack>
