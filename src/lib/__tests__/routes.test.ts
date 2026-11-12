@@ -36,10 +36,13 @@ describe('hrefForSitePath', () => {
     expect(hrefForSitePath('/1v1/AB12cd34')).toBe('/duels/ab12cd34');
     expect(hrefForSitePath('/oa-prep')).toBe('/oa-prep');
     expect(hrefForSitePath('/interview-course')).toBe('/course');
+    expect(hrefForSitePath('/cv-rater?utm_source=email')).toBe('/cv-rater');
+    expect(hrefForSitePath('/mock-interview')).toBe('/mock-interview');
+    expect(hrefForSitePath('/study-coach')).toBe('/study-coach');
   });
 
   it('opens everything else as a page', () => {
-    expect(hrefForSitePath('/cv-rater')).toBe(page('/cv-rater'));
+    expect(hrefForSitePath('/resources')).toBe(page('/resources'));
     expect(hrefForSitePath('spring-week-playbook')).toBe(page('/spring-week-playbook'));
     expect(hrefForSitePath('/companies/optiver')).toBe(page('/companies/optiver'));
     expect(hrefForSitePath('/dailyish')).toBe(page('/dailyish'));
@@ -62,15 +65,15 @@ describe('hrefForIncomingUrl', () => {
     expect(hrefForIncomingUrl('https://simplytk.com/mental-maths')).toBe('/play/mental-maths');
     expect(hrefForIncomingUrl('https://simplytk.com/internship-tracker/spring-weeks')).toBe('/tracker');
     expect(hrefForIncomingUrl(`https://simplytk.com/openings/jane-street-trader-${ID}`)).toBe(`/opening/${ID}`);
-    expect(hrefForIncomingUrl('https://simplytk.com/cv-rater?utm_source=email#top')).toBe(
-      page('/cv-rater?utm_source=email#top'),
+    expect(hrefForIncomingUrl('https://simplytk.com/resources?utm_source=email#top')).toBe(
+      page('/resources?utm_source=email#top'),
     );
     expect(hrefForIncomingUrl('https://simplytk.com/')).toBe('/');
     expect(hrefForIncomingUrl('https://simplytk.com')).toBe('/');
   });
 
   it('maps custom-scheme links', () => {
-    expect(hrefForIncomingUrl('simplytk://cv-rater')).toBe(page('/cv-rater'));
+    expect(hrefForIncomingUrl('simplytk://resources')).toBe(page('/resources'));
     expect(hrefForIncomingUrl('simplytk://fast-fractions')).toBe('/play/fast-fractions');
     expect(hrefForIncomingUrl('simplytk://more')).toBe('/more');
     expect(hrefForIncomingUrl('simplytk://daily')).toBe('/daily');
@@ -88,7 +91,7 @@ describe('hrefForIncomingUrl', () => {
 
   it('maps bare site paths', () => {
     expect(hrefForIncomingUrl('/companies/optiver')).toBe(page('/companies/optiver'));
-    expect(hrefForIncomingUrl('/cv-rater')).toBe(page('/cv-rater'));
+    expect(hrefForIncomingUrl('/resources')).toBe(page('/resources'));
     expect(hrefForIncomingUrl('/live')).toBe('/live');
     expect(hrefForIncomingUrl('/duels/ab12cd34')).toBe('/duels/ab12cd34');
     expect(hrefForIncomingUrl('/course/accounting-linkage')).toBe('/course/accounting-linkage');

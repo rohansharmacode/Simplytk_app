@@ -24,6 +24,7 @@ jest.mock('@/lib/files', () => ({ shareFile: jest.fn(() => Promise.resolve()) })
 jest.mock('@/lib/open', () => ({
   openOutside: jest.fn(() => Promise.resolve()),
   shareLink: jest.fn(() => Promise.resolve()),
+  copyText: jest.fn(() => Promise.resolve()),
 }));
 jest.mock('expo-notifications', () => ({
   setNotificationHandler: jest.fn(),
@@ -110,6 +111,27 @@ jest.mock('@/lib/site-api', () => ({
   getCourseModule: jest.fn(),
   askTutor: jest.fn(),
   revealSolution: jest.fn(),
+  getInterviewPrep: jest.fn(),
+  prepQuestions: jest.fn(),
+  scoreAnswer: jest.fn(),
+  followUp: jest.fn(),
+  getMockInterviews: jest.fn(),
+  saveMockInterview: jest.fn(),
+  getCvRater: jest.fn(),
+  rateCv: jest.fn(),
+  getCoverLetter: jest.fn(),
+  draftLetter: jest.fn(),
+  reviewLetter: jest.fn(),
+  getPsBuilder: jest.fn(),
+  reviewStatement: jest.fn(),
+  brainstormStatement: jest.fn(),
+  saveStatement: jest.fn(() => Promise.resolve({ ok: true })),
+  getStudyCoach: jest.fn(),
+  askStudyCoach: jest.fn(),
+  markStudyEssay: jest.fn(),
+}));
+jest.mock('@/lib/pick-cv', () => ({
+  pickCv: jest.fn(() => Promise.resolve({ fileName: 'cv.pdf', fileBase64: 'JVBERi0=' })),
 }));
 jest.mock('expo-apple-authentication', () => ({
   isAvailableAsync: jest.fn(() => Promise.resolve(false)),
@@ -662,6 +684,160 @@ describe('practice', () => {
   });
 });
 
+const QUOTA = { pass: false, freePerDay: 1, freeLeft: 1, credits: 0, quickPerDay: 2, quickLeft: 3 };
+const LONG_ANSWER = 'I led a team of four on a fundraising project and we raised two thousand pounds for charity.';
+
+async function type(label: string, text: string) {
+  await act(async () => {
+    fireEvent.changeText(screen.getByLabelText(label), text);
+  });
+}
+
+describe('AI tools', () => {
+  beforeEach(() => {
+    jest.mocked(SiteApi.getInterviewPrep).mockResolvedValue({
+      programmes: [{ key: 'spring_week', label: 'Spring week' }],
+      sectors: [{ key: 'investment_banking', label: 'Investment banking' }],
+      bank: { investment_banking: [{ category: 'fit', question: 'Why banking?', whatTheyTest: 'Motivation', tip: 'Be specific.' }] },
+    });
+    jest.mocked(SiteApi.prepQuestions).mockResolvedValue([
+      { question: 'Why Goldman Sachs?', whatTheyTest: 'Motivation for the firm', tip: 'Name a deal.' },
+    ]);
+    jest.mocked(SiteApi.scoreAnswer).mockResolvedValue({
+      score: 7,
+      verdict: 'Clear, but generic.',
+      feedback: ['Name the firm’s business.'],
+      improvedAnswer: 'A stronger answer.',
+    });
+    jest.mocked(SiteApi.followUp).mockResolvedValue({ question: 'What did you do yourself?', why: 'Ownership' });
+    jest.mocked(SiteApi.getMockInterviews).mockResolvedValue({ pass: false, sessions: [] });
+    jest.mocked(SiteApi.saveMockInterview).mockResolvedValue({ saved: false });
+    jest.mocked(SiteApi.getCvRater).mockResolvedValue({
+      quota: QUOTA,
+      history: [],
+      sectors: [{ key: 'investment_banking', label: 'Investment banking' }],
+      username: 'sam',
+    });
+    jest.mocked(SiteApi.rateCv).mockResolvedValue({
+      ratingId: 'r1',
+      score: 74,
+      categories: [{ name: 'Impact', score: 6, comment: 'Add numbers.' }],
+      strengths: ['Clear layout'],
+      improvements: ['Quantify results'],
+      bulletRewrites: [],
+      atsChecks: [],
+      jobMatch: null,
+      ranked: true,
+      previousBest: null,
+      percentile: 81,
+      rank: 12,
+      totalStudents: 300,
+    });
+    jest.mocked(SiteApi.getCoverLetter).mockResolvedValue({
+      quota: { drafts: QUOTA, reviews: QUOTA },
+      sectors: [{ key: 'general', label: 'General' }],
+      levels: [{ key: 'internship', label: 'Internship' }],
+      cvs: [{ id: 'r1', fileName: 'cv.pdf', targetRole: 'Spring week', score: 74, createdAt: '2026-11-01T00:00:00Z' }],
+      username: 'sam',
+    });
+    jest.mocked(SiteApi.draftLetter).mockResolvedValue({
+      letter: 'Dear Hiring Team, ...',
+      wordCount: 4,
+      openings: [],
+      usedFromCv: ['Fundraising project'],
+      gaps: ['[name a recent deal]'],
+    });
+    jest.mocked(SiteApi.getPsBuilder).mockResolvedValue({
+      questions: ['Why this course?', 'How have your studies prepared you?', 'What else have you done?'],
+      totalLimit: 4000,
+      minPerAnswer: 350,
+      quota: QUOTA,
+      draft: { course: 'Economics', universities: 'LSE', answers: ['a'.repeat(400), '', ''], updatedAt: '2026-11-01T00:00:00Z' },
+    });
+    jest.mocked(SiteApi.reviewStatement).mockResolvedValue({
+      overallScore: 6,
+      tutorSummary: 'A solid start.',
+      questionFeedback: [],
+      cohesion: null,
+      repetition: [],
+      courseFit: [],
+      nextActions: ['Add a book you read.'],
+    });
+    jest.mocked(SiteApi.getStudyCoach).mockResolvedValue({
+      levels: [{ key: 'a_level', label: 'A-Level' }],
+      subjects: ['Economics'],
+      boards: ['AQA'],
+      progress: { recent: [], weakTopics: [] },
+    });
+    jest.mocked(SiteApi.askStudyCoach).mockResolvedValue({ reply: 'Start with a judgement.' });
+  });
+
+  it('marks a firm prep answer', async () => {
+    await launch('/interview-prep');
+    await type('Firm', 'Goldman Sachs');
+    await press('Get my questions');
+    expect(SiteApi.prepQuestions).toHaveBeenCalledWith('Goldman Sachs', 'spring_week', 'investment_banking');
+    await act(async () => {
+      fireEvent.press(screen.getAllByLabelText('Question 1')[0]);
+    });
+    await type('Your answer', LONG_ANSWER);
+    await press('Mark my answer');
+    expect(SiteApi.scoreAnswer).toHaveBeenCalledWith('Goldman Sachs', 'Why Goldman Sachs?', LONG_ANSWER);
+    expect(screen.getByText('Clear, but generic.')).toBeTruthy();
+  });
+
+  it('runs a mock interview with its follow-up', async () => {
+    await launch('/mock-interview');
+    await type('Firm', 'Goldman Sachs');
+    await press('Start the interview');
+    expect(screen.getByText('Why Goldman Sachs?')).toBeTruthy();
+    await type('Your answer', LONG_ANSWER);
+    await press('Submit answer');
+    expect(screen.getByText('What did you do yourself?')).toBeTruthy();
+    await press('Finish the interview');
+    await press('Save to my history');
+    expect(SiteApi.saveMockInterview).toHaveBeenCalledWith(
+      expect.objectContaining({ company: 'Goldman Sachs', rounds: [expect.objectContaining({ score: 7, transcript: LONG_ANSWER })] }),
+    );
+  });
+
+  it('rates a CV picked from Files', async () => {
+    await launch('/cv-rater');
+    await press('Choose your CV');
+    await type('Role you’re targeting', 'Spring week');
+    await press('Rate my CV');
+    expect(SiteApi.rateCv).toHaveBeenCalledWith(expect.objectContaining({ fileName: 'cv.pdf', targetRole: 'Spring week' }));
+    expect(screen.getByText('Add numbers.')).toBeTruthy();
+  });
+
+  it('drafts a cover letter from a rated CV', async () => {
+    await launch('/cover-letter');
+    await type('Employer', 'Deloitte');
+    await type('Role', 'Audit intern');
+    await press('Write my draft');
+    expect(SiteApi.draftLetter).toHaveBeenCalledWith(expect.objectContaining({ company: 'Deloitte', cvRatingId: 'r1' }));
+    expect(screen.getByText('Dear Hiring Team, ...')).toBeTruthy();
+  });
+
+  it('loads the saved statement and reviews it', async () => {
+    await launch('/ps-builder');
+    expect(screen.getByDisplayValue('Economics')).toBeTruthy();
+    await press('Review my statement');
+    expect(SiteApi.reviewStatement).toHaveBeenCalledWith(expect.objectContaining({ course: 'Economics' }));
+    expect(screen.getByText('A solid start.')).toBeTruthy();
+  });
+
+  it('asks the study coach', async () => {
+    await launch('/study-coach');
+    await type('Ask anything on AQA Economics', 'How do I evaluate?');
+    await press('Send');
+    expect(SiteApi.askStudyCoach).toHaveBeenCalledWith({ level: 'a_level', subject: 'Economics', board: 'AQA' }, [
+      { role: 'user', content: 'How do I evaluate?' },
+    ]);
+    expect(screen.getByText('Start with a judgement.')).toBeTruthy();
+  });
+});
+
 describe('daily challenge', () => {
   beforeEach(() => jest.useFakeTimers());
   // Unmount while the fake clock still drives React's timers, or the next test waits on them.
@@ -786,10 +962,10 @@ describe('deep links', () => {
 describe('More tab', () => {
   it('opens menu entries as pages', async () => {
     const { app } = await launch('/more');
-    await press('CV rater');
+    await press('Resources');
     expect(app.getPathname()).toBe('/page');
-    expect(app.getSearchParams()).toMatchObject({ path: '/cv-rater', title: 'CV rater' });
-    expect(uris()).toContain('https://simplytk.com/cv-rater');
+    expect(app.getSearchParams()).toMatchObject({ path: '/resources', title: 'Resources' });
+    expect(uris()).toContain('https://simplytk.com/resources');
   });
 
   it('links to account settings, where accounts can be deleted', async () => {
@@ -973,10 +1149,10 @@ describe('notifications', () => {
   it('opens the linked page when a notification launched the app', async () => {
     jest
       .mocked(Notifications.getLastNotificationResponse)
-      .mockReturnValueOnce(tap({ url: 'https://simplytk.com/cv-rater' }) as never);
+      .mockReturnValueOnce(tap({ url: 'https://simplytk.com/resources' }) as never);
     const { app } = await launch();
     expect(app.getPathname()).toBe('/page');
-    expect(uris()).toContain('https://simplytk.com/cv-rater');
+    expect(uris()).toContain('https://simplytk.com/resources');
     expect(Notifications.clearLastNotificationResponse).toHaveBeenCalled();
   });
 

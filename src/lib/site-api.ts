@@ -306,3 +306,162 @@ export const askTutor = (questionId: string, answer: string) =>
   call<TutorResult>('POST', '/api/app/course/tutor', { questionId, answer });
 export const revealSolution = (questionId: string, gaveUp: boolean) =>
   call<{ solution: string }>('POST', '/api/app/course/solution', { questionId, gaveUp });
+
+// ---- AI tools -------------------------------------------------------------------------------
+
+export type Option = { key: string; label: string };
+
+/** A tool's allowance today: full-depth runs, then quick ones on a faster model. */
+export type AiQuota = { pass: boolean; freePerDay: number; freeLeft: number; credits: number; quickPerDay: number; quickLeft: number };
+
+/** "quick" when a run went to the faster model after the day's full-depth ones. */
+export type AiTier = 'premium' | 'full' | 'quick';
+
+// Firm prep and the mock interview.
+export type BankQuestion = { category: 'fit' | 'behavioural'; question: string; whatTheyTest: string; tip: string };
+export type PrepQuestion = { question: string; whatTheyTest: string; tip: string };
+export type AnswerFeedback = { score: number; verdict: string; feedback: string[]; improvedAnswer: string };
+export type FollowUp = { question: string; why: string };
+
+export const getInterviewPrep = () =>
+  call<{ programmes: Option[]; sectors: Option[]; bank: Record<string, BankQuestion[]> }>('GET', '/api/app/interview-prep');
+export const prepQuestions = (company: string, programme: string, sector: string) =>
+  call<PrepQuestion[]>('POST', '/api/app/interview-prep', { action: 'questions', company, programme, sector });
+export const scoreAnswer = (company: string, question: string, answer: string) =>
+  call<AnswerFeedback>('POST', '/api/app/interview-prep', { action: 'score', company, question, answer });
+export const followUp = (company: string, question: string, answer: string) =>
+  call<FollowUp>('POST', '/api/app/interview-prep', { action: 'follow-up', company, question, answer });
+
+export type MockRound = {
+  question: string;
+  whatTheyTest: string;
+  transcript: string;
+  seconds: number;
+  score: number | null;
+  verdict: string | null;
+  feedback: string[];
+  delivery: null;
+  followUp: { question: string; transcript: string; score: number | null; verdict: string | null } | null;
+};
+export type SavedMockInterview = {
+  id: string;
+  company: string | null;
+  sector: string | null;
+  programme: string | null;
+  averageScore: number | null;
+  rounds: MockRound[];
+  createdAt: string;
+};
+export const getMockInterviews = () => call<{ pass: boolean; sessions: SavedMockInterview[] }>('GET', '/api/app/mock-interviews');
+export const saveMockInterview = (interview: { company: string; sector: string; programme: string; rounds: MockRound[] }) =>
+  call<{ saved: boolean }>('POST', '/api/app/mock-interviews', interview);
+
+// The CV rater.
+export type CvHistoryPoint = { id: string; score: number; targetRole: string; fileName: string; createdAt: string; againstAdvert: boolean };
+export type CvRating = {
+  ratingId: string | null;
+  score: number;
+  categories: { name: string; score: number; comment: string }[];
+  strengths: string[];
+  improvements: string[];
+  bulletRewrites: { original: string; improved: string; why: string }[];
+  atsChecks: { name: string; passed: boolean; detail: string }[];
+  jobMatch: { met: string[]; missing: string[] } | null;
+  ranked: boolean;
+  previousBest: number | null;
+  percentile: number;
+  rank: number;
+  totalStudents: number;
+  tier?: AiTier;
+};
+export type UploadedFile = { fileName: string; fileBase64: string };
+
+export const getCvRater = () =>
+  call<{ quota: AiQuota; history: CvHistoryPoint[]; sectors: Option[]; username: string | null }>('GET', '/api/app/cv-rater');
+export const rateCv = (
+  input: UploadedFile & { targetRole: string; sector: string; targetCompany: string; jobDescription: string; username: string },
+) => call<CvRating>('POST', '/api/app/cv-rater', input);
+
+// The cover letter tool.
+export type LetterTarget = { company: string; role: string; sector: string; level: string; jobDescription: string };
+export type SavedCv = { id: string; fileName: string; targetRole: string; score: number; createdAt: string };
+export type LetterDraft = { letter: string; wordCount: number; openings: string[]; usedFromCv: string[]; gaps: string[]; tier?: AiTier };
+export type LetterReview = {
+  score: number;
+  verdict: string;
+  wordCount: number;
+  categories: { key: string; name: string; score: number; comment: string }[];
+  checks: { name: string; passed: boolean; detail: string }[];
+  cliches: { phrase: string; kind: 'cliche' | 'ai'; fix: string }[];
+  flags: string[];
+  genericLines: string[];
+  rewrites: { original: string; improved: string; why: string }[];
+  nextActions: string[];
+  percentile: number;
+  rank: number;
+  totalReviewed: number;
+  tier?: AiTier;
+};
+
+export const getCoverLetter = () =>
+  call<{
+    quota: { drafts: AiQuota; reviews: AiQuota };
+    sectors: Option[];
+    levels: Option[];
+    cvs: SavedCv[];
+    username: string | null;
+  }>('GET', '/api/app/cover-letter');
+export const draftLetter = (input: LetterTarget & { notes: string } & ({ cvRatingId: string } | UploadedFile)) =>
+  call<LetterDraft>('POST', '/api/app/cover-letter', { action: 'draft', ...input });
+export const reviewLetter = (input: LetterTarget & { letter: string; username: string }) =>
+  call<LetterReview>('POST', '/api/app/cover-letter', { action: 'review', ...input });
+
+// The personal statement builder.
+export type PsDraft = { course: string; universities: string; answers: string[]; updatedAt: string };
+export type PsReview = {
+  overallScore: number;
+  tutorSummary: string;
+  questionFeedback: { question: number; score: number; verdict: string; strengths: string[]; improvements: string[]; cliches: string[] }[];
+  cohesion: { score: number; verdict: string; notes: string[] } | null;
+  repetition: string[];
+  courseFit: string[];
+  nextActions: string[];
+  tier?: AiTier;
+};
+export type PsIdea = { experience: string; question: number; angle: string };
+type PsInput = { course: string; universities: string; answers: string[] };
+
+export const getPsBuilder = () =>
+  call<{ questions: string[]; totalLimit: number; minPerAnswer: number; quota: AiQuota; draft: PsDraft | null }>(
+    'GET',
+    '/api/app/ps-builder',
+  );
+export const reviewStatement = (input: PsInput) => call<PsReview>('POST', '/api/app/ps-builder', { action: 'review', ...input });
+export const brainstormStatement = (course: string, experiences: string) =>
+  call<PsIdea[]>('POST', '/api/app/ps-builder', { action: 'brainstorm', course, experiences });
+export const saveStatement = (input: PsInput) => call<{ ok: true }>('POST', '/api/app/ps-builder', { action: 'save', ...input });
+
+// The Study Coach.
+export type StudyContext = { level: string; subject: string; board: string };
+export type ChatTurn = { role: 'user' | 'tutor'; content: string };
+export type EssayMark = {
+  awardedMarks: number;
+  totalMarks: number;
+  band: string;
+  topic: string;
+  aoScores: { name: string; score: number; outOf: number; comment: string }[];
+  strengths: string[];
+  improvements: string[];
+  examinerSummary: string;
+};
+export type StudyProgress = {
+  recent: { subject: string; topic: string; awarded: number; total: number; createdAt: string }[];
+  weakTopics: { topic: string; subject: string; attempts: number; averagePercent: number }[];
+};
+
+export const getStudyCoach = () =>
+  call<{ levels: Option[]; subjects: string[]; boards: string[]; progress: StudyProgress }>('GET', '/api/app/study-coach');
+export const askStudyCoach = (context: StudyContext, messages: ChatTurn[]) =>
+  call<{ reply: string }>('POST', '/api/app/study-coach', { action: 'chat', ...context, messages });
+export const markStudyEssay = (context: StudyContext & { question: string; totalMarks: number; essay: string }) =>
+  call<EssayMark>('POST', '/api/app/study-coach', { action: 'mark', ...context });

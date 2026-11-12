@@ -120,6 +120,12 @@ export default function RootLayout() {
           <Stack.Screen name="duels/[code]" options={{ title: '' }} />
           <Stack.Screen name="course/index" options={{ title: '' }} />
           <Stack.Screen name="course/[module]" options={{ title: '' }} />
+          <Stack.Screen name="interview-prep" options={{ title: '' }} />
+          <Stack.Screen name="mock-interview" options={{ title: '' }} />
+          <Stack.Screen name="cv-rater" options={{ title: '' }} />
+          <Stack.Screen name="cover-letter" options={{ title: '' }} />
+          <Stack.Screen name="ps-builder" options={{ title: '' }} />
+          <Stack.Screen name="study-coach" options={{ title: '' }} />
         </Stack.Protected>
         <Stack.Screen name="page" options={{ title: '' }} />
       </Stack>

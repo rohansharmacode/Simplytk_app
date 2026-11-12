@@ -43,6 +43,13 @@ the source of truth. This one records what the app relies on. The calls are in
 | `getCourseModule` | `GET /api/app/course?module=<id>` | `{ id, title, objectives, explainer, drills, questions }` |
 | `askTutor` | `POST /api/app/course/tutor` `{ questionId, answer }` | `{ band, feedback, socraticQuestion, hint }` |
 | `revealSolution` | `POST /api/app/course/solution` `{ questionId, gaveUp }` | `{ solution }` |
+| `getInterviewPrep` | `GET /api/app/interview-prep` (no token needed) | `{ programmes, sectors, bank }` |
+| `prepQuestions`, `scoreAnswer`, `followUp` | `POST /api/app/interview-prep` `{ action: questions\|score\|follow-up, ... }` | questions, a mark out of 10, a follow-up |
+| `getMockInterviews`, `saveMockInterview` | `GET` and `POST /api/app/mock-interviews` | `{ pass, sessions }`, `{ saved }` |
+| `getCvRater`, `rateCv` | `GET` and `POST /api/app/cv-rater` | `{ quota, history, sectors, username }`, the rating |
+| `getCoverLetter`, `draftLetter`, `reviewLetter` | `GET` and `POST /api/app/cover-letter` `{ action: draft\|review, ... }` | `{ quota, sectors, levels, cvs, username }`, a draft or a review |
+| `getPsBuilder`, `reviewStatement`, `brainstormStatement`, `saveStatement` | `GET` and `POST /api/app/ps-builder` `{ action: review\|brainstorm\|save, ... }` | `{ questions, quota, draft, ... }`, a review, ideas, `{ ok }` |
+| `getStudyCoach`, `askStudyCoach`, `markStudyEssay` | `GET` and `POST /api/app/study-coach` `{ action: chat\|mark, level, subject, board, ... }` | `{ levels, subjects, boards, progress }`, `{ reply }`, a mark |
 
 Notes:
 
@@ -58,6 +65,11 @@ Notes:
 - **Not live yet.** A route the website doesn't serve yet answers 404 with an HTML page;
   `call` turns that into `SiteApiMissing`, and the screen offers the web page instead
   (`LoadState` in `src/components/load-state.tsx`).
+- **AI tools.** The site's own daily free and quick runs apply. The app sells nothing: the
+  site drops any sentence naming a plan or price from a limit message, and the app shows
+  only what's left today (`quotaLine` in `src/lib/ai-tools.ts`). CVs are picked from Files
+  with `expo-document-picker` and sent base64 (`src/lib/pick-cv.ts`). The mock interview is
+  typed or dictated with the keyboard's mic; there's no camera recording in the app.
 - **1v1.** The app lists, starts, accepts, cancels and shares challenges. The runs
   themselves are played in the drill (`path`), natively when the app has that drill.
 - **Push token.** The app registers its Expo push token after every sign-in and on the

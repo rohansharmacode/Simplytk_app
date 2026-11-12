@@ -36,12 +36,12 @@ const SECTIONS: Section[] = [
     title: 'AI tools',
     tone: 'blue',
     items: [
-      { label: 'CV rater', path: '/cv-rater', icon: { ios: 'doc.text.magnifyingglass', android: 'description' } },
-      { label: 'Cover letter', path: '/cover-letter', icon: { ios: 'envelope.open', android: 'drafts' } },
-      { label: 'Firm prep', path: '/interview-prep', icon: { ios: 'building.columns', android: 'account_balance' } },
-      { label: 'Mock interview', path: '/mock-interview', icon: { ios: 'video', android: 'videocam' } },
-      { label: 'Personal statement builder', path: '/ps-builder', icon: { ios: 'pencil.line', android: 'edit_note' } },
-      { label: 'Study coach', path: '/study-coach', icon: { ios: 'book', android: 'menu_book' } },
+      { label: 'CV rater', href: '/cv-rater', icon: { ios: 'doc.text.magnifyingglass', android: 'description' } },
+      { label: 'Cover letter', href: '/cover-letter', icon: { ios: 'envelope.open', android: 'drafts' } },
+      { label: 'Firm prep', href: '/interview-prep', icon: { ios: 'building.columns', android: 'account_balance' } },
+      { label: 'Mock interview', href: '/mock-interview', icon: { ios: 'video', android: 'videocam' } },
+      { label: 'Personal statement builder', href: '/ps-builder', icon: { ios: 'pencil.line', android: 'edit_note' } },
+      { label: 'Study coach', href: '/study-coach', icon: { ios: 'book', android: 'menu_book' } },
     ],
   },
   {

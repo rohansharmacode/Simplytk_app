@@ -1,6 +1,8 @@
+import * as Clipboard from 'expo-clipboard';
 import * as WebBrowser from 'expo-web-browser';
 import { Linking, Platform, Share, type ShareContent } from 'react-native';
 
+import { hapticCorrect } from './haptics';
 import type { LinkAction } from './site';
 
 const BRAND_BLUE = '#2B54E8';
@@ -41,4 +43,10 @@ export async function shareLink({ title, text, url }: { title?: string; text?: s
   } catch {
     // Dismissed or unavailable; nothing to do.
   }
+}
+
+/** Copy text the student will paste elsewhere, with a tap of feedback. */
+export async function copyText(text: string) {
+  await Clipboard.setStringAsync(text);
+  hapticCorrect();
 }

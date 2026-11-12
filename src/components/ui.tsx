@@ -54,6 +54,8 @@ export function Screen({
         contentContainerStyle={[styles.content, { paddingTop: topInset + Spacing.three, paddingBottom: BOTTOM_ROOM }]}
         contentInsetAdjustmentBehavior="automatic"
         keyboardShouldPersistTaps="handled"
+        // The AI tools' answer boxes stay above the keyboard on iOS.
+        automaticallyAdjustKeyboardInsets
         refreshControl={
           onRefresh ? (
             <RefreshControl refreshing={!!refreshing} onRefresh={onRefresh} tintColor={palette.textSecondary} />

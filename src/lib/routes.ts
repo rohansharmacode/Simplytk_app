@@ -21,6 +21,12 @@ const NATIVE_SECTIONS: [prefix: string, href: string][] = [
   ['/1v1', '/duels'],
   ['/oa-prep', '/oa-prep'],
   ['/interview-course', '/course'],
+  ['/interview-prep', '/interview-prep'],
+  ['/mock-interview', '/mock-interview'],
+  ['/cv-rater', '/cv-rater'],
+  ['/cover-letter', '/cover-letter'],
+  ['/ps-builder', '/ps-builder'],
+  ['/study-coach', '/study-coach'],
   ['/daily', '/daily'],
   ['/oa-leaderboard', '/ranks'],
   ['/league', '/ranks?board=league'],
@@ -51,6 +57,12 @@ const APP_ROUTES = [
   '/duels',
   '/oa-prep',
   '/course',
+  '/interview-prep',
+  '/mock-interview',
+  '/cv-rater',
+  '/cover-letter',
+  '/ps-builder',
+  '/study-coach',
 ];
 
 function isAppRoute(pathname: string) {
