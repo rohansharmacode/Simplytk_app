@@ -18,6 +18,9 @@ const NATIVE_SECTIONS: [prefix: string, href: string][] = [
   ['/live', '/live'],
   ['/opportunities', '/opportunities'],
   ['/progress', '/progress'],
+  ['/1v1', '/duels'],
+  ['/oa-prep', '/oa-prep'],
+  ['/interview-course', '/course'],
   ['/daily', '/daily'],
   ['/oa-leaderboard', '/ranks'],
   ['/league', '/ranks?board=league'],
@@ -45,6 +48,9 @@ const APP_ROUTES = [
   '/live',
   '/opportunities',
   '/progress',
+  '/duels',
+  '/oa-prep',
+  '/course',
 ];
 
 function isAppRoute(pathname: string) {
@@ -52,6 +58,8 @@ function isAppRoute(pathname: string) {
   if (play) return !!nativeDrillForPath(play[1]);
   const opening = /^\/opening\/([^/]+)$/.exec(pathname);
   if (opening) return isOpeningId(opening[1]);
+  if (/^\/duels\/[a-z0-9]{6,12}$/i.test(pathname)) return true;
+  if (/^\/course\/[a-z0-9-]+$/i.test(pathname)) return true;
   return APP_ROUTES.includes(pathname);
 }
 
@@ -67,6 +75,8 @@ function nativeHrefFor(pathname: string): string | null {
     const id = openingIdFromSlug(opening[1]);
     if (id) return `/opening/${id}`;
   }
+  const duel = /^\/1v1\/([a-z0-9]{6,12})$/i.exec(pathname);
+  if (duel) return `/duels/${duel[1].toLowerCase()}`;
   const native = NATIVE_UNDER_WEB.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
   if (!native && WEB_UNDER_NATIVE.some((prefix) => pathname.startsWith(prefix))) return null;
   // Longest prefix wins, so /dashboard/applications beats /dashboard.

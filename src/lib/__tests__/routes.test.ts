@@ -32,6 +32,10 @@ describe('hrefForSitePath', () => {
     expect(hrefForSitePath('/opportunities?region=us')).toBe('/opportunities');
     expect(hrefForSitePath('/pre-uni-tracker')).toBe('/tracker?stage=preuni');
     expect(hrefForSitePath('/progress')).toBe('/progress');
+    expect(hrefForSitePath('/1v1')).toBe('/duels');
+    expect(hrefForSitePath('/1v1/AB12cd34')).toBe('/duels/ab12cd34');
+    expect(hrefForSitePath('/oa-prep')).toBe('/oa-prep');
+    expect(hrefForSitePath('/interview-course')).toBe('/course');
   });
 
   it('opens everything else as a page', () => {
@@ -86,6 +90,9 @@ describe('hrefForIncomingUrl', () => {
     expect(hrefForIncomingUrl('/companies/optiver')).toBe(page('/companies/optiver'));
     expect(hrefForIncomingUrl('/cv-rater')).toBe(page('/cv-rater'));
     expect(hrefForIncomingUrl('/live')).toBe('/live');
+    expect(hrefForIncomingUrl('/duels/ab12cd34')).toBe('/duels/ab12cd34');
+    expect(hrefForIncomingUrl('/course/accounting-linkage')).toBe('/course/accounting-linkage');
+    expect(hrefForIncomingUrl('https://simplytk.com/1v1/ab12cd34')).toBe('/duels/ab12cd34');
   });
 
   it('falls back to Home for anything else', () => {

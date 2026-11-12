@@ -43,8 +43,9 @@ The notification payload's `data`:
   opens the Tracker, `/openings/<slug>` the opening, `/daily` the Daily tab,
   `/oa-leaderboard` and `/league` the Ranks tab, `/dashboard` Home,
   `/dashboard/applications` My applications, `/pre-uni-tracker` the Tracker's pre-uni view,
-  `/expected-openings` Opening soon, and `/live`, `/opportunities` and `/progress` their own
-  screens. Native drills open their drill, and any other page opens in a web view. A link to another site opens the Tracker.
+  `/expected-openings` Opening soon, `/1v1` and `/1v1/<code>` the 1v1 screens,
+  `/interview-course` the course, and `/live`, `/opportunities`, `/progress` and `/oa-prep`
+  their own screens. Native drills open their drill, and any other page opens in a web view. A link to another site opens the Tracker.
 
 Pages in web views can still ask for a token with
 `window.SimplytkNative.requestPushToken()`, which resolves to

@@ -50,9 +50,9 @@ const SECTIONS: Section[] = [
     items: [
       { label: 'Drills', onPress: () => router.push('/drills'), icon: { ios: 'stopwatch', android: 'timer' } },
       { label: 'My progress', href: '/progress', icon: { ios: 'chart.line.uptrend.xyaxis', android: 'trending_up' } },
-      { label: '1v1 challenge', path: '/1v1', icon: { ios: 'person.2.wave.2', android: 'sports_kabaddi' } },
-      { label: 'Online assessment prep', path: '/oa-prep', icon: { ios: 'puzzlepiece', android: 'extension' } },
-      { label: 'Interview course', path: '/interview-course', icon: { ios: 'list.bullet.rectangle', android: 'quiz' } },
+      { label: '1v1 challenge', href: '/duels', icon: { ios: 'person.2.wave.2', android: 'sports_kabaddi' } },
+      { label: 'Online assessment prep', href: '/oa-prep', icon: { ios: 'puzzlepiece', android: 'extension' } },
+      { label: 'Interview course', href: '/course', icon: { ios: 'list.bullet.rectangle', android: 'quiz' } },
     ],
   },
   {

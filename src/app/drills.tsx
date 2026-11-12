@@ -8,14 +8,16 @@ import { Radius, Spacing } from '@/constants/theme';
 import { usePalette } from '@/hooks/use-palette';
 import { DRILL_GROUPS, type Drill } from '@/lib/drills/catalogue';
 import { hideSplash } from '@/lib/splash';
+import { openSitePath } from '@/lib/web-pages';
 
 type Row = { title: string; blurb: string; slug: string; native?: true };
 
-/** Site pages that sit alongside the drills on simplytk.com/oa-prep. */
+/** Pages that sit alongside the drills on simplytk.com/oa-prep; most have a native screen. */
 const MORE_PRACTICE: Row[] = [
   { slug: 'oa-prep', title: 'Which test does my firm send?', blurb: 'Pick a firm and see the drills that train its test.' },
   { slug: 'oa-leaderboard', title: 'Overall leaderboard', blurb: 'The combined board across every ranked drill.' },
   { slug: '1v1', title: '1v1 challenge', blurb: 'Same drill, same questions, same clock as a friend.' },
+  { slug: 'interview-course', title: 'Interview course', blurb: 'Real interview questions, marked by an AI tutor.' },
   { slug: 'practice', title: 'Practice questions', blurb: 'Finance and brainteaser questions with instant feedback.' },
 ];
 
@@ -23,7 +25,7 @@ function open(row: Row | Drill) {
   if (row.native) {
     router.push({ pathname: '/play/[slug]', params: { slug: row.slug } });
   } else {
-    router.push({ pathname: '/page', params: { path: `/${row.slug}`, title: row.title } });
+    openSitePath(`/${row.slug}`, row.title);
   }
 }
 

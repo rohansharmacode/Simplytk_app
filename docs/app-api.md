@@ -34,6 +34,15 @@ the source of truth. This one records what the app relies on. The calls are in
 | `getLeague` | `GET /api/app/league` | `{ weekStart, endsAt, tier, cohort, members, you, lastWeek }` |
 | `savePushToken` | `POST /api/app/push-token` `{ token, platform }` | `{ ok, provider }` |
 | `deletePushToken` | `DELETE /api/app/push-token` `{ token }` | `{ ok }` |
+| `getOaPrep` | `GET /api/app/oa-prep` (no token needed) | `{ since, firms, providers, assessments, plan, faqs }` |
+| `getDuels` | `GET /api/app/duels` | `{ games, duels }` |
+| `createDuel` | `POST /api/app/duels` `{ game }` | `{ code }` |
+| `getDuel` | `GET /api/app/duels/<code>` | the duel, with `link` and each side's `scoreText` |
+| `actOnDuel` | `POST /api/app/duels/<code>` `{ action: accept\|cancel }` | the duel |
+| `getCourse` | `GET /api/app/course` | `{ tracks, progress }` |
+| `getCourseModule` | `GET /api/app/course?module=<id>` | `{ id, title, objectives, explainer, drills, questions }` |
+| `askTutor` | `POST /api/app/course/tutor` `{ questionId, answer }` | `{ band, feedback, socraticQuestion, hint }` |
+| `revealSolution` | `POST /api/app/course/solution` `{ questionId, gaveUp }` | `{ solution }` |
 
 Notes:
 
@@ -46,6 +55,11 @@ Notes:
   `src/lib/leaderboard.ts` turn them into the rows the Ranks tab draws, with your own row
   pinned. Below the top 100 the pinned row has your rank and percentile but no score. The
   site's overall board across every drill has no app route, so it stays a web page (Drills).
+- **Not live yet.** A route the website doesn't serve yet answers 404 with an HTML page;
+  `call` turns that into `SiteApiMissing`, and the screen offers the web page instead
+  (`LoadState` in `src/components/load-state.tsx`).
+- **1v1.** The app lists, starts, accepts, cancels and shares challenges. The runs
+  themselves are played in the drill (`path`), natively when the app has that drill.
 - **Push token.** The app registers its Expo push token after every sign-in and on the
   first star, and deletes it on sign-out. Registering it retires the old Capacitor shell's
   APNs rows for that student.

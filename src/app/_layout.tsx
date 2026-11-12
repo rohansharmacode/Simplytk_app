@@ -115,6 +115,11 @@ export default function RootLayout() {
           <Stack.Screen name="live" options={{ title: '' }} />
           <Stack.Screen name="opportunities" options={{ title: '' }} />
           <Stack.Screen name="progress" options={{ title: '' }} />
+          <Stack.Screen name="oa-prep" options={{ title: '' }} />
+          <Stack.Screen name="duels/index" options={{ title: '' }} />
+          <Stack.Screen name="duels/[code]" options={{ title: '' }} />
+          <Stack.Screen name="course/index" options={{ title: '' }} />
+          <Stack.Screen name="course/[module]" options={{ title: '' }} />
         </Stack.Protected>
         <Stack.Screen name="page" options={{ title: '' }} />
       </Stack>

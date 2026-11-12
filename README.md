@@ -34,7 +34,7 @@ the same in both places:
 | Tracker | Every opening, filtered by firm, type, deadline and region, for university or pre-uni. Star one for its deadline alerts. Tapping an opening shows it with its apply link and a Track application button. |
 | Daily | Today's challenge: the website's set of questions, a clock, a big number pad, and a review afterwards. |
 | Ranks | The daily challenge’s player and university boards (today, month, all time) and the weekly league, with your own row pinned at the bottom. |
-| More | Native screens for My applications (move each one through its stages), Opening soon (when programmes usually open), the Live feed, Startup opportunities, the pre-uni tracker and My progress. Also drills, 1v1, AI tools, mentoring, guides, account settings and sign out; the pages without a native screen yet open in web views over the tabs. |
+| More | Native screens for My applications (move each one through its stages), Opening soon (when programmes usually open), the Live feed, Startup opportunities, the pre-uni tracker, My progress, OA prep, 1v1 challenges and the interview course. Also drills, AI tools, mentoring, guides, account settings and sign out; the pages without a native screen yet open in web views over the tabs. |
 
 The look follows Rohan's Orbit design system (mono kickers over two-tone titles, quiet
 hairline cards, one blue accent, tabular numbers) in simplytk's blue, light and dark.

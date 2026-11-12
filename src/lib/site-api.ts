@@ -197,3 +197,112 @@ export const savePushToken = (token: string, platform: 'ios' | 'android') =>
   call<{ ok: true; provider: string }>('POST', '/api/app/push-token', { token, platform });
 
 export const deletePushToken = (token: string) => call<{ ok: true }>('DELETE', '/api/app/push-token', { token });
+
+// ---- Online assessment prep ------------------------------------------------------------------
+
+export type GameLink = { label: string; to: string };
+
+export type OaFirm = {
+  firm: string;
+  provider: string;
+  sends: string;
+  games: GameLink[];
+  /** What students reported this cycle, or null. */
+  reported: { reports: number; line: string } | null;
+};
+
+export type OaProvider = { provider: string; alsoCalled: string; firms: string; games: GameLink[] };
+
+export type OaAssessment = {
+  name: string;
+  provider: string;
+  format: string;
+  timing: string;
+  caveat: string;
+  practise: string;
+  to?: string;
+  toLabel?: string;
+};
+
+export type OaPrepGuide = {
+  since: string;
+  firms: OaFirm[];
+  providers: OaProvider[];
+  assessments: OaAssessment[];
+  plan: { when: string; title: string; body: string }[];
+  faqs: { q: string; a: string }[];
+};
+
+export const getOaPrep = () => call<OaPrepGuide>('GET', '/api/app/oa-prep');
+
+// ---- 1v1 challenges ------------------------------------------------------------------------
+
+export type DuelGame = { key: string; label: string; path: string; lowerIsBetter: boolean };
+
+export type DuelStatus = 'open' | 'live' | 'settled' | 'void' | 'cancelled';
+
+export type DuelSide = {
+  username: string | null;
+  isYou: boolean;
+  score: number | null;
+  scoreText: string | null;
+  playedAt: string | null;
+};
+
+export type Duel = {
+  code: string;
+  game: string;
+  label: string;
+  path: string;
+  lowerIsBetter: boolean;
+  createdAt: string;
+  acceptedAt: string | null;
+  cancelledAt: string | null;
+  expiresAt: string;
+  status: DuelStatus;
+  result: 'challenger' | 'opponent' | 'draw' | null;
+  walkover: boolean;
+  challenger: DuelSide;
+  opponent: DuelSide | null;
+  yourRole: 'challenger' | 'opponent' | 'spectator';
+  link: string;
+};
+
+export const getDuels = () => call<{ games: DuelGame[]; duels: Duel[] }>('GET', '/api/app/duels');
+export const createDuel = (game: string) => call<{ code: string }>('POST', '/api/app/duels', { game });
+export const getDuel = (code: string) => call<Duel>('GET', `/api/app/duels/${encodeURIComponent(code)}`);
+export const actOnDuel = (code: string, action: 'accept' | 'cancel') =>
+  call<Duel>('POST', `/api/app/duels/${encodeURIComponent(code)}`, { action });
+
+// ---- Interview course ----------------------------------------------------------------------
+
+export type CourseDrill = { label: string; to: string; practiceTopic?: string };
+
+export type CourseModuleSummary = {
+  id: string;
+  title: string;
+  objectives: string[];
+  drills: CourseDrill[];
+  questionCount: number;
+};
+
+export type CourseTrack = { id: string; label: string; description: string; modules: CourseModuleSummary[] };
+
+export type CourseModule = {
+  id: string;
+  title: string;
+  objectives: string[];
+  explainer: string;
+  drills: CourseDrill[];
+  questions: { id: string; difficulty: 'easy' | 'medium' | 'hard'; prompt: string }[];
+};
+
+export type TutorResult = { band: number; feedback: string; socraticQuestion: string | null; hint: string };
+
+export const getCourse = () =>
+  call<{ tracks: CourseTrack[]; progress: { questionId: string; band: number }[] }>('GET', '/api/app/course');
+export const getCourseModule = (id: string) => call<CourseModule>('GET', `/api/app/course?module=${encodeURIComponent(id)}`);
+export const askTutor = (questionId: string, answer: string) =>
+  call<TutorResult>('POST', '/api/app/course/tutor', { questionId, answer });
+export const revealSolution = (questionId: string, gaveUp: boolean) =>
+  call<{ solution: string }>('POST', '/api/app/course/solution', { questionId, gaveUp });

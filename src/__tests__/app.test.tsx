@@ -101,6 +101,15 @@ jest.mock('@/lib/site-api', () => ({
   getLeague: jest.fn(),
   savePushToken: jest.fn(() => Promise.resolve({ ok: true })),
   deletePushToken: jest.fn(() => Promise.resolve({ ok: true })),
+  getOaPrep: jest.fn(),
+  getDuels: jest.fn(),
+  createDuel: jest.fn(),
+  getDuel: jest.fn(),
+  actOnDuel: jest.fn(),
+  getCourse: jest.fn(),
+  getCourseModule: jest.fn(),
+  askTutor: jest.fn(),
+  revealSolution: jest.fn(),
 }));
 jest.mock('expo-apple-authentication', () => ({
   isAvailableAsync: jest.fn(() => Promise.resolve(false)),
@@ -542,6 +551,114 @@ describe('boards', () => {
     await launch('/progress');
     expect(screen.getByText('Interviews')).toBeTruthy();
     expect(screen.getByText('#4 in the Silver league')).toBeTruthy();
+  });
+});
+
+const DUEL = {
+  code: 'ab12cd34',
+  game: 'mental-maths',
+  label: 'Mental maths',
+  path: '/drills/mental-maths',
+  lowerIsBetter: false,
+  createdAt: '2026-11-10T09:00:00Z',
+  acceptedAt: null,
+  cancelledAt: null,
+  expiresAt: '2099-01-01T00:00:00Z',
+  status: 'open' as const,
+  result: null,
+  walkover: false,
+  challenger: { username: 'sam', isYou: false, score: 41, scoreText: '41 correct', playedAt: '2026-11-10T09:05:00Z' },
+  opponent: null,
+  yourRole: 'spectator' as const,
+  link: 'https://simplytk.com/1v1/ab12cd34',
+};
+
+const COURSE_MODULE = {
+  id: 'accounting-linkage',
+  title: 'Linking the three statements',
+  objectives: ['Walk a change through all three statements'],
+  explainer: 'Every IB interview tests the three statements.',
+  drills: [{ label: 'Accounting MCQ drill', to: '/practice', practiceTopic: 'accounting' }],
+  questions: [{ id: 'acc-1', difficulty: 'easy' as const, prompt: 'Depreciation goes up by 10. Walk me through it.' }],
+};
+
+describe('practice', () => {
+  beforeEach(() => {
+    jest.mocked(SiteApi.getOaPrep).mockResolvedValue({
+      since: '2026-09-01',
+      firms: [{ firm: 'Goldman Sachs', provider: 'HireVue', sends: 'A numerical test', games: [], reported: null }],
+      providers: [],
+      assessments: [],
+      plan: [],
+      faqs: [],
+    });
+    jest.mocked(SiteApi.getDuels).mockResolvedValue({
+      games: [{ key: 'mental-maths', label: 'Mental maths', path: '/drills/mental-maths', lowerIsBetter: false }],
+      duels: [],
+    });
+    jest.mocked(SiteApi.createDuel).mockResolvedValue({ code: 'ab12cd34' });
+    jest.mocked(SiteApi.getDuel).mockResolvedValue(DUEL);
+    jest.mocked(SiteApi.actOnDuel).mockResolvedValue({
+      ...DUEL,
+      status: 'live',
+      yourRole: 'opponent',
+      opponent: { username: 'you', isYou: true, score: null, scoreText: null, playedAt: null },
+    });
+    jest.mocked(SiteApi.getCourse).mockResolvedValue({
+      tracks: [
+        {
+          id: 'ib',
+          label: 'Investment banking',
+          description: 'Technical and fit questions.',
+          modules: [{ id: COURSE_MODULE.id, title: COURSE_MODULE.title, objectives: [], drills: [], questionCount: 1 }],
+        },
+      ],
+      progress: [],
+    });
+    jest.mocked(SiteApi.getCourseModule).mockResolvedValue(COURSE_MODULE);
+    jest.mocked(SiteApi.askTutor).mockResolvedValue({ band: 4, feedback: 'Right order, check the tax.', socraticQuestion: null, hint: 'Think about tax.' });
+  });
+
+  it('shows the OA prep guide', async () => {
+    await launch('/oa-prep');
+    expect(screen.getAllByText('Goldman Sachs').length).toBeGreaterThan(0);
+  });
+
+  it('starts a 1v1 and opens it', async () => {
+    await launch('/duels');
+    await press('Challenge on Mental maths');
+    expect(SiteApi.createDuel).toHaveBeenCalledWith('mental-maths');
+    expect(SiteApi.getDuel).toHaveBeenCalledWith('ab12cd34');
+  });
+
+  it('accepts a 1v1 from its link', async () => {
+    await launch('/duels/ab12cd34');
+    expect(screen.getByText('41 correct')).toBeTruthy();
+    await press('Accept the challenge');
+    expect(SiteApi.actOnDuel).toHaveBeenCalledWith('ab12cd34', 'accept');
+    expect(screen.getByText('Play Mental maths')).toBeTruthy();
+  });
+
+  it('falls back to the web page while the website lacks the route', async () => {
+    jest.mocked(SiteApi.getDuels).mockRejectedValue(new SiteApi.SiteApiMissing('/api/app/duels'));
+    await launch('/duels');
+    expect(screen.getByText('Coming to the app soon')).toBeTruthy();
+  });
+
+  it('marks a course answer with the tutor', async () => {
+    await launch('/course');
+    await press('Linking the three statements');
+    expect(screen.getByText('Every IB interview tests the three statements.')).toBeTruthy();
+    await act(async () => {
+      fireEvent.press(screen.getByLabelText('Question 1'));
+    });
+    await flush();
+    await act(async () => {
+      fireEvent.changeText(screen.getByLabelText('Your answer to question 1'), 'Net income falls by 6 after tax.');
+    });
+    await press('Get AI feedback');
+    expect(SiteApi.askTutor).toHaveBeenCalledWith('acc-1', 'Net income falls by 6 after tax.');
+    expect(screen.getByText('Band 4/5 · Nearly there')).toBeTruthy();
   });
 });
 
