@@ -222,10 +222,7 @@ afterEach(async () => {
 
 /** Render the real app (src/app) at `url`. */
 async function launch(url = '/') {
-  // renderRouter's router queries sit on the promise it returns, not on the resolved
-  // value, so hand back the promise inside an object (returning it would unwrap it).
-  const app = renderRouter('./src/app', { initialUrl: url });
-  await app;
+  const app = await renderRouter('./src/app', { initialUrl: url });
   await flush();
   return { app };
 }

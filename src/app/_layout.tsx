@@ -55,8 +55,9 @@ export default function RootLayout() {
     Inter_800ExtraBold,
   });
   const userId = session?.user.id ?? null;
+  const ready = session !== undefined && (fontsLoaded || !!fontError);
 
-  useNotificationRouting();
+  useNotificationRouting(ready);
 
   // A new student: their stars, and this device's token on their account if they allowed
   // notifications before. Signed out: nothing of the last student's stays on the device.
@@ -84,7 +85,7 @@ export default function RootLayout() {
   // The stored session is read before anything shows, so a signed-in student never sees
   // the sign-in screen flash. The splash stays up meanwhile.
   // Inter is waited for too, so text never jumps from the system face.
-  if (session === undefined || (!fontsLoaded && !fontError)) return null;
+  if (!ready) return null;
 
   return (
     <ThemeProvider value={navigationTheme(scheme)}>
@@ -97,10 +98,10 @@ export default function RootLayout() {
           headerBackButtonDisplayMode: 'minimal',
           contentStyle: { backgroundColor: palette.background },
         }}>
-        <Stack.Protected guard={session === null}>
+        <Stack.Protected guard={session === null} redirectTo="/">
           <Stack.Screen name="sign-in" options={{ headerShown: false }} />
         </Stack.Protected>
-        <Stack.Protected guard={!!session}>
+        <Stack.Protected guard={!!session} redirectTo="/sign-in">
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="opening/[id]" options={{ title: '' }} />
           <Stack.Screen

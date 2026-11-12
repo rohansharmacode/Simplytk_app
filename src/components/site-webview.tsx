@@ -1,8 +1,8 @@
 import * as Clipboard from 'expo-clipboard';
 import Constants from 'expo-constants';
 import { useFocusEffect } from 'expo-router';
-import { useCallback, useEffect, useImperativeHandle, useRef, useState, type Ref } from 'react';
-import { AppState, BackHandler, Platform, StyleSheet, View } from 'react-native';
+import { useCallback, useEffect, useImperativeHandle, useRef, useState, type ComponentRef, type Ref } from 'react';
+import { AppState, BackHandler, Platform, StyleSheet, View, type HostInstance } from 'react-native';
 import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
 import type {
@@ -68,8 +68,8 @@ type Props = {
  */
 export function SiteWebView({ initialPath, insetTop, onTitleChange, onUrlChange, ref }: Props) {
   const palette = usePalette();
-  const webRef = useRef<WebView>(null);
-  const containerRef = useRef<View>(null);
+  const webRef = useRef<ComponentRef<typeof WebView>>(null);
+  const containerRef = useRef<HostInstance>(null);
   const keyboardOverlap = useKeyboardOverlap(containerRef);
 
   const [source, setSource] = useState(() => ({ uri: siteUrl(initialPath) }));

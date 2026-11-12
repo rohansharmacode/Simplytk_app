@@ -233,7 +233,7 @@ export default function TrackerScreen() {
       renderItem={({ item }) => <OpeningCard opening={item} now={now} />}
       ListHeaderComponent={header}
       ListEmptyComponent={empty}
-      ListFooterComponent={loadingMore ? <Loading /> : null}
+      ListFooterComponent={loadingMore ? <Loading /> : undefined}
       ItemSeparatorComponent={Separator}
       onEndReached={loadMore}
       onEndReachedThreshold={0.6}
