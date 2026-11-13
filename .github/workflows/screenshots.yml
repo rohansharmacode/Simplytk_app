@@ -1,15 +1,14 @@
 # Runs .maestro/tour.yaml on an iPhone simulator and pushes a screenshot of every screen to
 # the `screenshots` branch, so the app's look can be checked without a phone.
-# Give it the URL of an EAS simulator build (`eas build -p ios --profile simulator`).
+# It runs when .maestro/app-url.txt changes: put the URL of an EAS simulator build
+# (`eas build -p ios --profile simulator`) in that file and push.
 # Needs the repository secrets MAESTRO_TEST_EMAIL and MAESTRO_TEST_PASSWORD (a test account).
 name: Screenshot tour
 
 on:
+  push:
+    paths: ['.maestro/app-url.txt']
   workflow_dispatch:
-    inputs:
-      app_url:
-        description: URL of the EAS iOS simulator build (.tar.gz)
-        required: true
 
 permissions:
   contents: write
@@ -22,9 +21,8 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Start an iPhone simulator and install the app
-        env:
-          APP_URL: ${{ inputs.app_url }}
         run: |
+          APP_URL=$(head -1 .maestro/app-url.txt)
           curl -fsSL -o app.tar.gz "$APP_URL"
           mkdir app && tar -xzf app.tar.gz -C app
           APP=$(find app -maxdepth 2 -name "*.app" | head -1)
