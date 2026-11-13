@@ -1,4 +1,4 @@
-import { googleSignInUrl, readOAuthReturn } from '../google';
+import { googleSessionError, googleSignInUrl, readOAuthReturn } from '../google';
 
 describe('Google sign-in', () => {
   it('asks the website broker to come back to simplytk.com/auth', () => {
@@ -27,5 +27,20 @@ describe('Google sign-in', () => {
       error: 'Cancelled',
     });
     expect(readOAuthReturn('https://simplytk.com/auth?state=s1', 's1')).toHaveProperty('error');
+  });
+});
+
+describe('googleSessionError', () => {
+  it('stays quiet when the person closes the sheet', () => {
+    expect(googleSessionError(null)).toBeNull();
+    expect(
+      googleSessionError('The operation couldn’t be completed. (com.apple.AuthenticationServices.WebAuthenticationSession error 1.)'),
+    ).toBeNull();
+  });
+
+  it('shows why the sheet could not open', () => {
+    expect(
+      googleSessionError('The operation couldn’t be completed. (com.apple.AuthenticationServices.WebAuthenticationSession error 2.)'),
+    ).toMatch(/Google sign-in couldn’t open \(.*error 2\.\)\)/);
   });
 });

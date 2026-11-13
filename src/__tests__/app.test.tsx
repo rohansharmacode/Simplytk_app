@@ -370,7 +370,7 @@ describe('signing in', () => {
     setSessionForTests(null);
     const { app } = await launch('/tracker');
     expect(app.getPathname()).toBe('/sign-in');
-    expect(screen.getByText('Your stars, streak and scores are the same here and on simplytk.com.')).toBeTruthy();
+    expect(screen.getByText('Your stars, streak and scores match simplytk.com.')).toBeTruthy();
     expect(Queries.fetchOpenings).not.toHaveBeenCalled();
   });
 
@@ -435,7 +435,7 @@ describe('signing in', () => {
   it('sends new students to the website to make an account', async () => {
     setSessionForTests(null);
     await launch();
-    await press('Create an account on simplytk.com');
+    await press('Create an account');
     expect(openOutside).toHaveBeenCalledWith('https://simplytk.com/auth', 'browser');
   });
 

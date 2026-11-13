@@ -1,13 +1,24 @@
+import { BlurView } from 'expo-blur';
 import { GlassView, isLiquidGlassAvailable } from 'expo-glass-effect';
+import { useNavigation } from 'expo-router';
+import { HeaderHeightContext, HeaderShownContext } from 'expo-router/react-navigation';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SymbolView, type AndroidSymbol, type SFSymbol } from 'expo-symbols';
-import { Fragment, type ReactNode } from 'react';
+import {
+  createContext,
+  Fragment,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useState,
+  type ReactNode,
+} from 'react';
 import {
   ActivityIndicator,
+  Animated,
   Platform,
   Pressable,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   View,
   type StyleProp,
@@ -17,7 +28,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Text } from '@/components/text';
 import { cardShadow, Radius, Spacing, Tabular, toneColors, type Tone } from '@/constants/theme';
-import { usePalette } from '@/hooks/use-palette';
+import { usePalette, useScheme } from '@/hooks/use-palette';
 
 /**
  * The pieces every native screen is built from, in the style of Apple's own apps and the
@@ -30,6 +41,12 @@ export type Icon = { ios: SFSymbol; android: AndroidSymbol };
 
 /** Room under the content for the floating tab bar. */
 const BOTTOM_ROOM = Platform.OS === 'web' ? 112 : Spacing.six;
+
+/** Lets a screen's large `Title` tell its `Screen` what to show in the small bar on scroll. */
+const ScreenTitleContext = createContext<(title: string) => void>(() => {});
+
+/** How far the large title scrolls before the small one takes over, as in Mail and Music. */
+const TITLE_SWAP = 44;
 
 export function Screen({
   children,
@@ -44,26 +61,110 @@ export function Screen({
   footer?: ReactNode;
 }) {
   const palette = usePalette();
+  const scheme = useScheme();
   const insets = useSafeAreaInsets();
-  // iOS insets the scroll view under the status bar itself; Android tabs don't.
-  const topInset = Platform.OS === 'android' ? insets.top : 0;
+  const navigation = useNavigation();
+  const headerShown = useContext(HeaderShownContext);
+  const headerHeight = useContext(HeaderHeightContext) ?? 0;
+  const underHeader = headerShown && headerHeight > 0;
+  const [title, setTitle] = useState('');
+  const [compact, setCompact] = useState(false);
+  const [scrollY] = useState(() => new Animated.Value(0));
+
+  // iOS starts the scroll view pulled down by the top inset it adds, so 0 is not the top.
+  const top = Platform.OS === 'ios' ? -(underHeader ? headerHeight : insets.top) : 0;
+  // Android tabs and transparent headers don't inset the content themselves.
+  const topPad = Platform.OS === 'android' ? (underHeader ? headerHeight : insets.top) : 0;
+
+  // A pushed screen keeps the system bar, but see-through and frosted, so content blends
+  // under it rather than stopping at a solid edge.
+  useLayoutEffect(() => {
+    if (!underHeader) return;
+    navigation.setOptions({
+      headerTransparent: true,
+      headerBlurEffect: scheme === 'dark' ? 'systemChromeMaterialDark' : 'systemChromeMaterialLight',
+      headerStyle: { backgroundColor: Platform.OS === 'ios' ? 'transparent' : palette.surface },
+      headerShadowVisible: false,
+    });
+  }, [navigation, underHeader, scheme, palette.surface]);
+
+  // The bar's small title appears only once the large one has scrolled away.
+  useEffect(() => {
+    if (underHeader) navigation.setOptions({ title: compact ? title : '' });
+  }, [navigation, underHeader, compact, title]);
+
+  const onScroll = Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
+    useNativeDriver: true,
+    listener: (event: { nativeEvent: { contentOffset: { y: number } } }) => {
+      const past = event.nativeEvent.contentOffset.y - top > TITLE_SWAP;
+      setCompact((was) => (was === past ? was : past));
+    },
+  });
+
   return (
-    <View style={{ flex: 1, backgroundColor: palette.background }}>
-      <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={[styles.content, { paddingTop: topInset + Spacing.three, paddingBottom: BOTTOM_ROOM }]}
-        contentInsetAdjustmentBehavior="automatic"
-        keyboardShouldPersistTaps="handled"
-        // The AI tools' answer boxes stay above the keyboard on iOS.
-        automaticallyAdjustKeyboardInsets
-        refreshControl={
-          onRefresh ? (
-            <RefreshControl refreshing={!!refreshing} onRefresh={onRefresh} tintColor={palette.textSecondary} />
-          ) : undefined
-        }>
-        {children}
-      </ScrollView>
-      {footer ? <View style={{ paddingBottom: Platform.OS === 'web' ? 96 : 0 }}>{footer}</View> : null}
+    <ScreenTitleContext.Provider value={setTitle}>
+      <View style={{ flex: 1, backgroundColor: palette.background }}>
+        <Animated.ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={[styles.content, { paddingTop: topPad + Spacing.three, paddingBottom: BOTTOM_ROOM }]}
+          contentInsetAdjustmentBehavior="automatic"
+          keyboardShouldPersistTaps="handled"
+          // The AI tools' answer boxes stay above the keyboard on iOS.
+          automaticallyAdjustKeyboardInsets
+          onScroll={onScroll}
+          scrollEventThrottle={16}
+          refreshControl={
+            onRefresh ? (
+              <RefreshControl
+                refreshing={!!refreshing}
+                onRefresh={onRefresh}
+                tintColor={palette.textSecondary}
+                progressViewOffset={topPad}
+              />
+            ) : undefined
+          }>
+          {children}
+        </Animated.ScrollView>
+        {underHeader ? null : <TopBar title={title} scrollY={scrollY} top={top} height={insets.top} />}
+        {footer ? <View style={{ paddingBottom: Platform.OS === 'web' ? 96 : 0 }}>{footer}</View> : null}
+      </View>
+    </ScreenTitleContext.Provider>
+  );
+}
+
+/**
+ * The frosted bar over a tab's status bar area. It is clear at the top of the page, frosts
+ * as content slides under it, and shows the page's title small once the large one is gone,
+ * so nothing scrolls hard into the notch.
+ */
+function TopBar({ title, scrollY, top, height }: { title: string; scrollY: Animated.Value; top: number; height: number }) {
+  const palette = usePalette();
+  const scheme = useScheme();
+  const frost = scrollY.interpolate({ inputRange: [top, top + 16], outputRange: [0, 1], extrapolate: 'clamp' });
+  const label = scrollY.interpolate({
+    inputRange: [top + TITLE_SWAP - 8, top + TITLE_SWAP + 12],
+    outputRange: [0, 1],
+    extrapolate: 'clamp',
+  });
+  return (
+    <View pointerEvents="none" style={[styles.topBar, { height: height + 44 }]}>
+      <Animated.View style={[StyleSheet.absoluteFill, { opacity: frost }]}>
+        {Platform.OS === 'ios' ? (
+          <BlurView
+            tint={scheme === 'dark' ? 'systemChromeMaterialDark' : 'systemChromeMaterialLight'}
+            intensity={100}
+            style={StyleSheet.absoluteFill}
+          />
+        ) : (
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: palette.surface }]} />
+        )}
+        <View style={[styles.topBarEdge, { backgroundColor: palette.hair }]} />
+      </Animated.View>
+      <Animated.View style={[styles.topBarTitle, { top: height, opacity: label }]}>
+        <Text numberOfLines={1} style={[styles.topBarText, { color: palette.text }]}>
+          {title}
+        </Text>
+      </Animated.View>
     </View>
   );
 }
@@ -90,6 +191,8 @@ export function Title({
   actions?: ReactNode;
 }) {
   const palette = usePalette();
+  const setScreenTitle = useContext(ScreenTitleContext);
+  useEffect(() => setScreenTitle(title), [setScreenTitle, title]);
   return (
     <View style={styles.titleRow}>
       <View style={styles.titleBlock}>
@@ -496,6 +599,31 @@ export function IconTile({ icon, tone = 'blue', size = 36 }: { icon: Icon; tone?
 }
 
 const styles = StyleSheet.create({
+  topBar: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+  },
+  topBarEdge: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: StyleSheet.hairlineWidth,
+  },
+  topBarTitle: {
+    position: 'absolute',
+    left: Spacing.six * 2,
+    right: Spacing.six * 2,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  topBarText: {
+    fontSize: 17,
+    fontWeight: '600',
+  },
   content: {
     paddingHorizontal: Spacing.four,
     gap: Spacing.five,

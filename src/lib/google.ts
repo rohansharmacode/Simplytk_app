@@ -46,3 +46,14 @@ export function readOAuthReturn(url: string, expectedState: string): OAuthReturn
   if (!access || !refresh) return { error: 'Google sign-in came back without a session. Try again.' };
   return { tokens: { access_token: access, refresh_token: refresh } };
 }
+
+/**
+ * What to tell the person when the iOS sign-in sheet ends without a sign-in. A plain cancel
+ * (ASWebAuthenticationSession error 1, or no error) says nothing; anything else is shown,
+ * since otherwise the Google button looks like it did nothing.
+ */
+export function googleSessionError(error: string | null | undefined): string | null {
+  if (!error) return null;
+  if (/error 1\.\)|cancel/i.test(error)) return null;
+  return `Google sign-in couldn’t open (${error}). Try again, or sign in another way.`;
+}
