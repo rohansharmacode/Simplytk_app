@@ -46,18 +46,150 @@ appId: com.simplytk.app
 - takeScreenshot: 09-more
 - scroll
 - takeScreenshot: 10-more-scrolled
+# Tracker: open the first opening.
 - tapOn:
-    text: '.*CV rater.*'
-    retryTapIfNoChange: true
+    point: 30%, 95%
+- scrollUntilVisible:
+    element:
+      text: 'Search by firm'
+    direction: UP
+    optional: true
+- tapOn:
+    point: 50%, 80%
+    optional: true
 - waitForAnimationToEnd
-- takeScreenshot: 11-cv-rater
+- takeScreenshot: 11-opening
 - scroll
-- takeScreenshot: 12-cv-rater-scrolled
+- takeScreenshot: 12-opening-scrolled
 - swipe:
     start: 1%, 50%
     end: 90%, 50%
 - waitForAnimationToEnd
+# Home: search and profile buttons.
+- tapOn:
+    point: 10%, 95%
+- tapOn:
+    point: 82%, 9%
+    optional: true
+- waitForAnimationToEnd
+- takeScreenshot: 13-home-search
+- swipe:
+    start: 1%, 50%
+    end: 90%, 50%
+- tapOn:
+    point: 92%, 9%
+    optional: true
+- waitForAnimationToEnd
+- takeScreenshot: 14-home-profile
+- swipe:
+    start: 1%, 50%
+    end: 90%, 50%
+- runFlow:
+    file: visit.yaml
+    env:
+      LABEL: 'My applications'
+      NAME: 20-applications
+- runFlow:
+    file: visit.yaml
+    env:
+      LABEL: 'Opening soon'
+      NAME: 21-opening-soon
+- runFlow:
+    file: visit.yaml
+    env:
+      LABEL: 'Live feed'
+      NAME: 22-live-feed
+- runFlow:
+    file: visit.yaml
+    env:
+      LABEL: 'Startup opportunities'
+      NAME: 23-opportunities
+- runFlow:
+    file: visit.yaml
+    env:
+      LABEL: 'Pre-uni tracker'
+      NAME: 24-preuni
+- runFlow:
+    file: visit.yaml
+    env:
+      LABEL: 'Submit an opening'
+      NAME: 25-submit
+- runFlow:
+    file: visit.yaml
+    env:
+      LABEL: 'CV rater'
+      NAME: 30-cv-rater
+- runFlow:
+    file: visit.yaml
+    env:
+      LABEL: 'Cover letter'
+      NAME: 31-cover-letter
+- runFlow:
+    file: visit.yaml
+    env:
+      LABEL: 'Firm prep'
+      NAME: 32-firm-prep
+- runFlow:
+    file: visit.yaml
+    env:
+      LABEL: 'Mock interview'
+      NAME: 33-mock-interview
+- runFlow:
+    file: visit.yaml
+    env:
+      LABEL: 'Personal statement builder'
+      NAME: 34-ps-builder
+- runFlow:
+    file: visit.yaml
+    env:
+      LABEL: 'Study coach'
+      NAME: 35-study-coach
+- runFlow:
+    file: visit.yaml
+    env:
+      LABEL: 'Drills'
+      NAME: 40-drills
+- runFlow:
+    file: visit.yaml
+    env:
+      LABEL: 'My progress'
+      NAME: 41-progress
+- runFlow:
+    file: visit.yaml
+    env:
+      LABEL: '1v1 challenge'
+      NAME: 42-duels
+- runFlow:
+    file: visit.yaml
+    env:
+      LABEL: 'Online assessment prep'
+      NAME: 43-oa-prep
+- runFlow:
+    file: visit.yaml
+    env:
+      LABEL: 'Interview course'
+      NAME: 44-course
+- runFlow:
+    file: visit.yaml
+    env:
+      LABEL: 'Spring Week Playbook'
+      NAME: 50-playbook
+- runFlow:
+    file: visit.yaml
+    env:
+      LABEL: 'Resources'
+      NAME: 51-resources
+- runFlow:
+    file: visit.yaml
+    env:
+      LABEL: 'Account settings'
+      NAME: 52-settings
+# Ranks scrolled and the other boards.
 - tapOn:
     point: 70%, 95%
-- scroll
-- takeScreenshot: 13-ranks-scrolled
+- tapOn: 'League'
+- waitForAnimationToEnd
+- takeScreenshot: 60-ranks-league
+- tapOn: 'Universities'
+- waitForAnimationToEnd
+- takeScreenshot: 61-ranks-unis
