@@ -175,8 +175,16 @@ appId: com.simplytk.app
 # Pre-uni tracker, then the other leaderboards.
 - openLink: simplytk://tracker?stage=preuni
 - waitForAnimationToEnd
+- tapOn:
+    point: 67%, 55%
+    optional: true
+- waitForAnimationToEnd
 - takeScreenshot: 24-preuni
 - openLink: simplytk://ranks
+- waitForAnimationToEnd
+- tapOn:
+    point: 67%, 55%
+    optional: true
 - waitForAnimationToEnd
 - tapOn:
     point: 80%, 25%

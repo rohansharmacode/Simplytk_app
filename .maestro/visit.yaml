@@ -3,6 +3,11 @@
 appId: com.simplytk.app
 ---
 - openLink: simplytk://${LINK}
+# iOS asks "Open in simplytk?" for each link.
+- waitForAnimationToEnd
+- tapOn:
+    point: 67%, 55%
+    optional: true
 - waitForAnimationToEnd:
     timeout: 5000
 - takeScreenshot: ${NAME}
