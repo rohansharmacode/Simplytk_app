@@ -70,30 +70,40 @@ export function Screen({
 
   const onScroll = Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true });
 
+  const scroll = (
+    <Animated.ScrollView
+      style={{ flex: 1, backgroundColor: palette.background }}
+      contentContainerStyle={[styles.content, { paddingTop: topPad + Spacing.three, paddingBottom: BOTTOM_ROOM }]}
+      contentInsetAdjustmentBehavior="automatic"
+      keyboardShouldPersistTaps="handled"
+      // The AI tools' answer boxes stay above the keyboard on iOS.
+      automaticallyAdjustKeyboardInsets
+      onScroll={underHeader ? undefined : onScroll}
+      scrollEventThrottle={16}
+      refreshControl={
+        onRefresh ? (
+          <RefreshControl
+            refreshing={!!refreshing}
+            onRefresh={onRefresh}
+            tintColor={palette.textSecondary}
+            progressViewOffset={topPad}
+          />
+        ) : undefined
+      }>
+      {children}
+    </Animated.ScrollView>
+  );
+
+  // The navigation bar only follows a scroll view that is the screen's own root view: wrapped
+  // in another view, the large title stays put and the bar never frosts.
+  if (underHeader && !footer) {
+    return <ScreenTitleContext.Provider value={setTitle}>{scroll}</ScreenTitleContext.Provider>;
+  }
+
   return (
     <ScreenTitleContext.Provider value={setTitle}>
       <View style={{ flex: 1, backgroundColor: palette.background }}>
-        <Animated.ScrollView
-          style={{ flex: 1 }}
-          contentContainerStyle={[styles.content, { paddingTop: topPad + Spacing.three, paddingBottom: BOTTOM_ROOM }]}
-          contentInsetAdjustmentBehavior="automatic"
-          keyboardShouldPersistTaps="handled"
-          // The AI tools' answer boxes stay above the keyboard on iOS.
-          automaticallyAdjustKeyboardInsets
-          onScroll={underHeader ? undefined : onScroll}
-          scrollEventThrottle={16}
-          refreshControl={
-            onRefresh ? (
-              <RefreshControl
-                refreshing={!!refreshing}
-                onRefresh={onRefresh}
-                tintColor={palette.textSecondary}
-                progressViewOffset={topPad}
-              />
-            ) : undefined
-          }>
-          {children}
-        </Animated.ScrollView>
+        {scroll}
         {underHeader ? null : <TopBar title={title} scrollY={scrollY} top={top} height={insets.top} />}
         {footer ? <View style={{ paddingBottom: Platform.OS === 'web' ? 96 : 0 }}>{footer}</View> : null}
       </View>
