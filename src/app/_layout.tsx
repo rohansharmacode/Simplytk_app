@@ -11,6 +11,7 @@ import { StatusBar } from 'expo-status-bar';
 import * as SystemUI from 'expo-system-ui';
 import { useEffect } from 'react';
 
+import { headerOptions } from '@/components/header-options';
 import { Colors, type Scheme } from '@/constants/theme';
 import { useNotificationRouting } from '@/hooks/use-notification-routing';
 import { useScheme } from '@/hooks/use-palette';
@@ -90,14 +91,7 @@ export default function RootLayout() {
   return (
     <ThemeProvider value={navigationTheme(scheme)}>
       <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
-      <Stack
-        screenOptions={{
-          headerTintColor: palette.tint,
-          headerTitleStyle: { color: palette.text },
-          headerStyle: { backgroundColor: palette.surface },
-          headerBackButtonDisplayMode: 'minimal',
-          contentStyle: { backgroundColor: palette.background },
-        }}>
+      <Stack screenOptions={headerOptions(palette, false)}>
         <Stack.Protected guard={session === null} redirectTo="/">
           <Stack.Screen name="sign-in" options={{ headerShown: false }} />
         </Stack.Protected>
@@ -106,7 +100,11 @@ export default function RootLayout() {
           <Stack.Screen name="opening/[id]" options={{ title: '' }} />
           <Stack.Screen
             name="challenge"
-            options={{ headerShown: false, presentation: 'fullScreenModal', gestureEnabled: false }}
+            options={{
+              headerShown: false,
+              presentation: 'fullScreenModal',
+              gestureEnabled: false,
+            }}
           />
           <Stack.Screen name="drills" options={{ title: 'Drills' }} />
           <Stack.Screen name="play/[slug]" options={{ title: '' }} />

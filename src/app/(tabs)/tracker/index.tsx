@@ -1,36 +1,17 @@
-import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import { SymbolView } from "expo-symbols";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  Animated,
-  Platform,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  View,
-} from "react-native";
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { SymbolView } from 'expo-symbols';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { FlatList, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { OpeningCard } from "@/components/opening-card";
-import { Text, TextInput } from "@/components/text";
-import {
-  Chip,
-  Empty,
-  Hero,
-  HeroStats,
-  Kicker,
-  Loading,
-  onHero,
-  Segmented,
-  Title,
-  useTopBar,
-} from "@/components/ui";
-import { Spacing } from "@/constants/theme";
-import { usePalette } from "@/hooks/use-palette";
-import { hideSplash } from "@/lib/splash";
-import { loadStars, useStars } from "@/lib/stars";
+import { OpeningCard } from '@/components/opening-card';
+import { Text, TextInput } from '@/components/text';
+import { Chip, Empty, Hero, HeroStats, Kicker, Loading, onHero, Segmented, Title } from '@/components/ui';
+import { Spacing } from '@/constants/theme';
+import { usePalette } from '@/hooks/use-palette';
+import { hideSplash } from '@/lib/splash';
+import { loadStars, useStars } from '@/lib/stars';
 import {
   activeFilterCount,
   daysLeft,
@@ -47,25 +28,24 @@ import {
   type OpeningType,
   type PreUniType,
   type Stage,
-} from "@/lib/tracker/openings";
-import { fetchOpenings, PAGE_SIZE, type Opening } from "@/lib/tracker/queries";
+} from '@/lib/tracker/openings';
+import { fetchOpenings, PAGE_SIZE, type Opening } from '@/lib/tracker/queries';
 
-type View_ = "all" | "starred";
+type View_ = 'all' | 'starred';
 
 /** Wait this long after the last keystroke before searching firms. */
 const SEARCH_DELAY_MS = 300;
 
 export default function TrackerScreen() {
   const palette = usePalette();
-  const topBar = useTopBar();
   const insets = useSafeAreaInsets();
-  const topInset = Platform.OS === "android" ? insets.top : 0;
+  const topInset = Platform.OS === 'android' ? insets.top : 0;
   const router = useRouter();
   const params = useLocalSearchParams<{ stage?: string }>();
-  const [view, setView] = useState<View_>("all");
+  const [view, setView] = useState<View_>('all');
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
-  const stage: Stage = filters.stage ?? "uni";
-  const [firmInput, setFirmInput] = useState("");
+  const stage: Stage = filters.stage ?? 'uni';
+  const [firmInput, setFirmInput] = useState('');
   // Rows with the filters they were loaded for; stale rows show as loading.
   const [result, setResult] = useState<{
     filters: Filters;
@@ -88,22 +68,15 @@ export default function TrackerScreen() {
   const [linkedStage, setLinkedStage] = useState<string | undefined>(undefined);
   if (params.stage !== linkedStage) {
     setLinkedStage(params.stage);
-    if (params.stage === "preuni" || params.stage === "uni") {
+    if (params.stage === 'preuni' || params.stage === 'uni') {
       const next = params.stage;
-      setView("all");
-      setFilters((f) =>
-        f.stage === next
-          ? f
-          : { ...DEFAULT_FILTERS, region: f.region, firm: f.firm, stage: next },
-      );
+      setView('all');
+      setFilters((f) => (f.stage === next ? f : { ...DEFAULT_FILTERS, region: f.region, firm: f.firm, stage: next }));
     }
   }
 
   useEffect(() => {
-    const timer = setTimeout(
-      () => setFilters((f) => ({ ...f, firm: firmInput })),
-      SEARCH_DELAY_MS,
-    );
+    const timer = setTimeout(() => setFilters((f) => ({ ...f, firm: firmInput })), SEARCH_DELAY_MS);
     return () => clearTimeout(timer);
   }, [firmInput]);
 
@@ -115,10 +88,7 @@ export default function TrackerScreen() {
         setError(null);
         setResult((current) => ({
           filters: next,
-          rows:
-            nextPage === 0 || current?.filters !== next
-              ? rows
-              : [...current.rows, ...rows],
+          rows: nextPage === 0 || current?.filters !== next ? rows : [...current.rows, ...rows],
         }));
         setPage(nextPage);
         setHasMore(rows.length === PAGE_SIZE);
@@ -142,7 +112,7 @@ export default function TrackerScreen() {
   }
 
   async function loadMore() {
-    if (view !== "all" || !hasMore || loadingMore || openings === null) return;
+    if (view !== 'all' || !hasMore || loadingMore || openings === null) return;
     setLoadingMore(true);
     await load(filters, page + 1);
     setLoadingMore(false);
@@ -151,17 +121,12 @@ export default function TrackerScreen() {
   function toggleType(type: OpeningType | PreUniType) {
     setFilters((f) => ({
       ...f,
-      types: f.types.includes(type)
-        ? f.types.filter((t) => t !== type)
-        : [...f.types, type],
+      types: f.types.includes(type) ? f.types.filter((t) => t !== type) : [...f.types, type],
     }));
   }
 
-  const starred = useMemo(
-    () => upcomingStarred(stars.list ?? [], new Date()),
-    [stars.list],
-  );
-  const data = view === "all" ? (openings ?? []) : starred;
+  const starred = useMemo(() => upcomingStarred(stars.list ?? [], new Date()), [stars.list]);
+  const data = view === 'all' ? (openings ?? []) : starred;
   const filterCount = activeFilterCount(filters);
   const closingThisWeek = starred.filter((o) => {
     if (!o.deadline) return false;
@@ -177,28 +142,22 @@ export default function TrackerScreen() {
         <View style={styles.heroHead}>
           <Kicker color={onHero.secondary}>Your tracker</Kicker>
           <Text style={styles.heroNote}>
-            {stage === "preuni"
-              ? `Pre-uni · ${REGION_LABELS[filters.region]}`
-              : REGION_LABELS[filters.region]}
+            {stage === 'preuni' ? `Pre-uni · ${REGION_LABELS[filters.region]}` : REGION_LABELS[filters.region]}
           </Text>
         </View>
         <HeroStats
           stats={[
             {
-              value: stars.list ? String(starred.length) : "–",
-              label: "Starred",
+              value: stars.list ? String(starred.length) : '–',
+              label: 'Starred',
             },
             {
-              value: stars.list ? String(closingThisWeek) : "–",
-              label: "Close this week",
+              value: stars.list ? String(closingThisWeek) : '–',
+              label: 'Close this week',
             },
             {
-              value: openings
-                ? openings.length >= PAGE_SIZE
-                  ? `${openings.length}+`
-                  : String(openings.length)
-                : "–",
-              label: "Shown",
+              value: openings ? (openings.length >= PAGE_SIZE ? `${openings.length}+` : String(openings.length)) : '–',
+              label: 'Shown',
             },
           ]}
         />
@@ -206,7 +165,7 @@ export default function TrackerScreen() {
 
       <View style={[styles.search, { backgroundColor: palette.raised }]}>
         <SymbolView
-          name={{ ios: "magnifyingglass", android: "search", web: "search" }}
+          name={{ ios: 'magnifyingglass', android: 'search', web: 'search' }}
           tintColor={palette.faint}
           size={17}
         />
@@ -225,14 +184,14 @@ export default function TrackerScreen() {
 
       <Segmented
         options={[
-          ["all", "All openings"],
-          ["starred", `Starred${stars.list ? ` · ${starred.length}` : ""}`],
+          ['all', 'All openings'],
+          ['starred', `Starred${stars.list ? ` · ${starred.length}` : ''}`],
         ]}
         value={view}
         onChange={setView}
       />
 
-      {view === "all" ? (
+      {view === 'all' ? (
         <View style={styles.filters}>
           <ChipRow>
             {REGIONS.map((region) => (
@@ -245,14 +204,12 @@ export default function TrackerScreen() {
             ))}
           </ChipRow>
           <ChipRow>
-            {(["uni", "preuni"] as const).map((option) => (
+            {(['uni', 'preuni'] as const).map((option) => (
               <Chip
                 key={option}
                 label={STAGE_LABELS[option]}
                 selected={stage === option}
-                onPress={() =>
-                  setFilters((f) => ({ ...f, stage: option, types: [] }))
-                }
+                onPress={() => setFilters((f) => ({ ...f, stage: option, types: [] }))}
               />
             ))}
           </ChipRow>
@@ -279,18 +236,9 @@ export default function TrackerScreen() {
           <Pressable
             accessibilityRole="button"
             hitSlop={8}
-            onPress={() =>
-              router.push(
-                stage === "preuni"
-                  ? "/opening-soon?stage=preuni"
-                  : "/opening-soon",
-              )
-            }
-          >
+            onPress={() => router.push(stage === 'preuni' ? '/opening-soon?stage=preuni' : '/opening-soon')}>
             <Text style={[styles.clear, { color: palette.tint }]}>
-              {stage === "preuni"
-                ? "When school-age programmes usually open"
-                : "See what’s opening soon"}
+              {stage === 'preuni' ? 'When school-age programmes usually open' : 'See what’s opening soon'}
             </Text>
           </Pressable>
           {filterCount > 0 ? (
@@ -298,26 +246,21 @@ export default function TrackerScreen() {
               accessibilityRole="button"
               hitSlop={8}
               onPress={() => {
-                setFirmInput("");
+                setFirmInput('');
                 setFilters({ ...DEFAULT_FILTERS, stage });
-              }}
-            >
-              <Text style={[styles.clear, { color: palette.tint }]}>
-                Clear filters
-              </Text>
+              }}>
+              <Text style={[styles.clear, { color: palette.tint }]}>Clear filters</Text>
             </Pressable>
           ) : null}
         </View>
       ) : null}
 
-      {error ? (
-        <Text style={[styles.error, { color: palette.danger }]}>{error}</Text>
-      ) : null}
+      {error ? <Text style={[styles.error, { color: palette.danger }]}>{error}</Text> : null}
     </View>
   );
 
   const empty =
-    view === "starred" ? (
+    view === 'starred' ? (
       stars.list === null ? (
         <Loading />
       ) : (
@@ -329,42 +272,27 @@ export default function TrackerScreen() {
     ) : openings === null ? (
       <Loading />
     ) : (
-      <Empty
-        title="Nothing matches"
-        body="Try another firm, type or deadline, or clear the filters."
-      />
+      <Empty title="Nothing matches" body="Try another firm, type or deadline, or clear the filters." />
     );
 
   return (
-    <topBar.Provider value={topBar.setTitle}>
-      <View style={{ flex: 1, backgroundColor: palette.background }}>
-        <Animated.FlatList
-          {...topBar.scrollProps}
-          style={{ backgroundColor: palette.background }}
-          contentContainerStyle={styles.list}
-          contentInsetAdjustmentBehavior="automatic"
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="on-drag"
-          data={data}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <OpeningCard opening={item} now={now} />}
-          ListHeaderComponent={header}
-          ListEmptyComponent={empty}
-          ListFooterComponent={loadingMore ? <Loading /> : undefined}
-          ItemSeparatorComponent={Separator}
-          onEndReached={loadMore}
-          onEndReachedThreshold={0.6}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={refresh}
-              tintColor={palette.textSecondary}
-            />
-          }
-        />
-        {topBar.bar}
-      </View>
-    </topBar.Provider>
+    <FlatList
+      style={{ backgroundColor: palette.background }}
+      contentContainerStyle={styles.list}
+      contentInsetAdjustmentBehavior="automatic"
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="on-drag"
+      data={data}
+      keyExtractor={(item) => item.id}
+      renderItem={({ item }) => <OpeningCard opening={item} now={now} />}
+      ListHeaderComponent={header}
+      ListEmptyComponent={empty}
+      ListFooterComponent={loadingMore ? <Loading /> : undefined}
+      ItemSeparatorComponent={Separator}
+      onEndReached={loadMore}
+      onEndReachedThreshold={0.6}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={palette.textSecondary} />}
+    />
   );
 }
 
@@ -378,8 +306,7 @@ function ChipRow({ children }: { children: React.ReactNode }) {
       horizontal
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={styles.chipRow}
-      style={styles.chipScroll}
-    >
+      style={styles.chipScroll}>
       {children}
     </ScrollView>
   );
@@ -388,20 +315,20 @@ function ChipRow({ children }: { children: React.ReactNode }) {
 const styles = StyleSheet.create({
   list: {
     paddingHorizontal: Spacing.four,
-    paddingBottom: Platform.OS === "web" ? 112 : Spacing.six,
+    paddingBottom: Platform.OS === 'web' ? 112 : Spacing.six,
   },
   hero: {
     gap: Spacing.three,
   },
   heroHead: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   heroNote: {
     color: onHero.secondary,
     fontSize: 13,
-    fontWeight: "600",
+    fontWeight: '600',
   },
   header: {
     gap: Spacing.four,
@@ -411,8 +338,8 @@ const styles = StyleSheet.create({
     minHeight: 48,
     borderRadius: 12,
     paddingHorizontal: 12,
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: Spacing.two,
   },
   searchInput: {
@@ -422,7 +349,7 @@ const styles = StyleSheet.create({
   },
   clear: {
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: '600',
   },
   filters: {
     gap: Spacing.two,

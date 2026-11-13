@@ -20,24 +20,28 @@ appId: com.simplytk.app
 - tapOn: 'Sign in to simplytk'
 - tapOn: 'Sign in'
 - extendedWaitUntil:
-    visible: 'Home'
+    visible: 'Today'
     timeout: 30000
 - waitForAnimationToEnd
 - takeScreenshot: 03-home
 - scroll
 - takeScreenshot: 04-home-scrolled
-- tapOn: 'Tracker'
+- tapOn:
+    point: 30%, 95%
 - waitForAnimationToEnd
 - takeScreenshot: 05-tracker
 - scroll
 - takeScreenshot: 06-tracker-scrolled
-- tapOn: 'Daily'
+- tapOn:
+    point: 50%, 95%
 - waitForAnimationToEnd
 - takeScreenshot: 07-daily
-- tapOn: 'Ranks'
+- tapOn:
+    point: 70%, 95%
 - waitForAnimationToEnd
 - takeScreenshot: 08-ranks
-- tapOn: 'More'
+- tapOn:
+    point: 90%, 95%
 - waitForAnimationToEnd
 - takeScreenshot: 09-more
 - scroll
@@ -51,6 +55,7 @@ appId: com.simplytk.app
     start: 1%, 50%
     end: 90%, 50%
 - waitForAnimationToEnd
-- tapOn: 'Ranks'
+- tapOn:
+    point: 70%, 95%
 - scroll
 - takeScreenshot: 13-ranks-scrolled

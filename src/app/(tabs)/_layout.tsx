@@ -25,7 +25,7 @@ export default function TabsLayout() {
       }}
       minimizeBehavior="onScrollDown"
       disableTransparentOnScrollEdge>
-      <NativeTabs.Trigger name="index" contentStyle={{ backgroundColor: palette.background }}>
+      <NativeTabs.Trigger name="(home)" contentStyle={{ backgroundColor: palette.background }}>
         <NativeTabs.Trigger.Label>Home</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf={{ default: 'house', selected: 'house.fill' }} md="home" />
       </NativeTabs.Trigger>

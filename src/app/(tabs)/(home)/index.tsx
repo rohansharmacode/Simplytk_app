@@ -87,7 +87,8 @@ export default function HomeScreen() {
     <Screen refreshing={refreshing} onRefresh={refresh}>
       <Title
         eyebrow={today(now)}
-        title={name ? `${greeting(now)}, ${name}` : greeting(now)}
+        title="Today"
+        subtitle={name ? `${greeting(now)}, ${name}.` : `${greeting(now)}.`}
         actions={
           <>
             <GlassButton

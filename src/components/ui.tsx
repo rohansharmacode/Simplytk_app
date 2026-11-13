@@ -4,15 +4,7 @@ import { useNavigation } from 'expo-router';
 import { HeaderHeightContext, HeaderShownContext } from 'expo-router/react-navigation';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SymbolView, type AndroidSymbol, type SFSymbol } from 'expo-symbols';
-import {
-  createContext,
-  Fragment,
-  useContext,
-  useEffect,
-  useLayoutEffect,
-  useState,
-  type ReactNode,
-} from 'react';
+import { createContext, Fragment, useContext, useEffect, useLayoutEffect, useState, type ReactNode } from 'react';
 import {
   ActivityIndicator,
   Animated,
@@ -61,45 +53,21 @@ export function Screen({
   footer?: ReactNode;
 }) {
   const palette = usePalette();
-  const scheme = useScheme();
   const insets = useSafeAreaInsets();
-  const navigation = useNavigation();
   const headerShown = useContext(HeaderShownContext);
   const headerHeight = useContext(HeaderHeightContext) ?? 0;
+  // Under a navigation bar the system does the large title and the frosting (header-options.ts);
+  // a screen without one (a full-screen modal) gets the same look from TopBar.
   const underHeader = headerShown && headerHeight > 0;
   const [title, setTitle] = useState('');
-  const [compact, setCompact] = useState(false);
   const [scrollY] = useState(() => new Animated.Value(0));
 
   // iOS starts the scroll view pulled down by the top inset it adds, so 0 is not the top.
-  const top = Platform.OS === 'ios' ? -(underHeader ? headerHeight : insets.top) : 0;
-  // Android tabs and transparent headers don't inset the content themselves.
-  const topPad = Platform.OS === 'android' ? (underHeader ? headerHeight : insets.top) : 0;
+  const top = Platform.OS === 'ios' ? -insets.top : 0;
+  // Android doesn't inset content under the status bar itself.
+  const topPad = Platform.OS === 'android' && !underHeader ? insets.top : 0;
 
-  // A pushed screen keeps the system bar, but see-through and frosted, so content blends
-  // under it rather than stopping at a solid edge.
-  useLayoutEffect(() => {
-    if (!underHeader) return;
-    navigation.setOptions({
-      headerTransparent: true,
-      headerBlurEffect: scheme === 'dark' ? 'systemChromeMaterialDark' : 'systemChromeMaterialLight',
-      headerStyle: { backgroundColor: Platform.OS === 'ios' ? 'transparent' : palette.surface },
-      headerShadowVisible: false,
-    });
-  }, [navigation, underHeader, scheme, palette.surface]);
-
-  // The bar's small title appears only once the large one has scrolled away.
-  useEffect(() => {
-    if (underHeader) navigation.setOptions({ title: compact ? title : '' });
-  }, [navigation, underHeader, compact, title]);
-
-  const onScroll = Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
-    useNativeDriver: true,
-    listener: (event: { nativeEvent: { contentOffset: { y: number } } }) => {
-      const past = event.nativeEvent.contentOffset.y - top > TITLE_SWAP;
-      setCompact((was) => (was === past ? was : past));
-    },
-  });
+  const onScroll = Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true });
 
   return (
     <ScreenTitleContext.Provider value={setTitle}>
@@ -111,7 +79,7 @@ export function Screen({
           keyboardShouldPersistTaps="handled"
           // The AI tools' answer boxes stay above the keyboard on iOS.
           automaticallyAdjustKeyboardInsets
-          onScroll={onScroll}
+          onScroll={underHeader ? undefined : onScroll}
           scrollEventThrottle={16}
           refreshControl={
             onRefresh ? (
@@ -137,10 +105,24 @@ export function Screen({
  * as content slides under it, and shows the page's title small once the large one is gone,
  * so nothing scrolls hard into the notch.
  */
-function TopBar({ title, scrollY, top, height }: { title: string; scrollY: Animated.Value; top: number; height: number }) {
+function TopBar({
+  title,
+  scrollY,
+  top,
+  height,
+}: {
+  title: string;
+  scrollY: Animated.Value;
+  top: number;
+  height: number;
+}) {
   const palette = usePalette();
   const scheme = useScheme();
-  const frost = scrollY.interpolate({ inputRange: [top, top + 16], outputRange: [0, 1], extrapolate: 'clamp' });
+  const frost = scrollY.interpolate({
+    inputRange: [top, top + 16],
+    outputRange: [0, 1],
+    extrapolate: 'clamp',
+  });
   const label = scrollY.interpolate({
     inputRange: [top + TITLE_SWAP - 8, top + TITLE_SWAP + 12],
     outputRange: [0, 1],
@@ -169,25 +151,6 @@ function TopBar({ title, scrollY, top, height }: { title: string; scrollY: Anima
   );
 }
 
-/**
- * The same frosted top bar for a tab whose list isn't a `Screen` (the Tracker's FlatList).
- * Spread `scrollProps` on an Animated list, render `bar` after it, and wrap the screen in
- * `Provider` so its `Title` names the bar.
- */
-export function useTopBar() {
-  const insets = useSafeAreaInsets();
-  const [title, setTitle] = useState('');
-  const [scrollY] = useState(() => new Animated.Value(0));
-  const top = Platform.OS === 'ios' ? -insets.top : 0;
-  const onScroll = Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true });
-  return {
-    scrollProps: { onScroll, scrollEventThrottle: 16 },
-    bar: <TopBar title={title} scrollY={scrollY} top={top} height={insets.top} />,
-    Provider: ScreenTitleContext.Provider,
-    setTitle,
-  };
-}
-
 /** A small uppercase label: the date over a title, or a label on a card. */
 export function Kicker({ children, color }: { children: ReactNode; color?: string }) {
   const palette = usePalette();
@@ -210,8 +173,39 @@ export function Title({
   actions?: ReactNode;
 }) {
   const palette = usePalette();
+  const navigation = useNavigation();
+  const headerShown = useContext(HeaderShownContext);
   const setScreenTitle = useContext(ScreenTitleContext);
   useEffect(() => setScreenTitle(title), [setScreenTitle, title]);
+
+  // Under a navigation bar the title is the system's large title and the buttons sit in the
+  // bar, as in Music and Mail; only the small lines stay in the page.
+  useLayoutEffect(() => {
+    if (!headerShown) return;
+    navigation.setOptions({
+      title,
+      headerLargeTitleEnabled: true,
+      headerRight: actions
+        ? () => (
+            <InHeaderContext.Provider value>
+              <View style={styles.headerActions}>{actions}</View>
+            </InHeaderContext.Provider>
+          )
+        : undefined,
+    });
+  }, [navigation, headerShown, title, actions]);
+
+  if (headerShown) {
+    const line = [eyebrow, subtitle].filter(Boolean);
+    if (!line.length) return null;
+    return (
+      <View style={styles.titleBlock}>
+        {eyebrow ? <Kicker>{eyebrow}</Kicker> : null}
+        {subtitle ? <Text style={[styles.subtitle, { color: palette.textSecondary }]}>{subtitle}</Text> : null}
+      </View>
+    );
+  }
+
   return (
     <View style={styles.titleRow}>
       <View style={styles.titleBlock}>
@@ -226,13 +220,29 @@ export function Title({
   );
 }
 
+/** Tells a GlassButton it sits in the navigation bar, which draws its own glass on iOS 26. */
+const InHeaderContext = createContext(false);
+
 /**
  * A round toolbar button. On iOS 26 it is real Liquid Glass; elsewhere a frosted circle
  * with a soft shadow.
  */
 export function GlassButton({ icon, label, onPress }: { icon: Icon; label: string; onPress: () => void }) {
   const palette = usePalette();
-  const glyph = <SymbolView name={{ ...icon, web: icon.android }} tintColor={palette.tint} size={19} />;
+  const inHeader = useContext(InHeaderContext);
+  const glyph = <SymbolView name={{ ...icon, web: icon.android }} tintColor={palette.tint} size={inHeader ? 22 : 19} />;
+  if (inHeader) {
+    return (
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        hitSlop={8}
+        onPress={onPress}
+        style={styles.headerButton}>
+        {glyph}
+      </Pressable>
+    );
+  }
   return (
     <Pressable
       accessibilityRole="button"
@@ -248,7 +258,11 @@ export function GlassButton({ icon, label, onPress }: { icon: Icon; label: strin
         <View
           style={[
             styles.glassButton,
-            { backgroundColor: palette.glass, borderColor: palette.hair, borderWidth: 1 },
+            {
+              backgroundColor: palette.glass,
+              borderColor: palette.hair,
+              borderWidth: 1,
+            },
             cardShadow(palette.shadow),
           ]}>
           {glyph}
@@ -374,7 +388,12 @@ export function Group({ children }: { children: ReactNode[] }) {
   const palette = usePalette();
   const rows = children.filter(Boolean);
   return (
-    <View style={[styles.group, { backgroundColor: palette.surface, borderColor: palette.hair }, cardShadow(palette.shadow)]}>
+    <View
+      style={[
+        styles.group,
+        { backgroundColor: palette.surface, borderColor: palette.hair },
+        cardShadow(palette.shadow),
+      ]}>
       {rows.map((row, index) => (
         <Fragment key={index}>
           {index > 0 ? <View style={[styles.separator, { backgroundColor: palette.hair }]} /> : null}
@@ -427,7 +446,11 @@ export function Row({
       {pill ? <Pill label={pill.label} tone={pill.tone ?? tone} onPress={pill.onPress ?? onPress} /> : null}
       {chevron ? (
         <SymbolView
-          name={{ ios: 'chevron.right', android: 'chevron_right', web: 'chevron_right' }}
+          name={{
+            ios: 'chevron.right',
+            android: 'chevron_right',
+            web: 'chevron_right',
+          }}
           tintColor={palette.faint}
           size={13}
         />
@@ -469,8 +492,7 @@ export function Button({
   icon?: Icon;
 }) {
   const palette = usePalette();
-  const color =
-    variant === 'primary' ? palette.onTint : variant === 'onHero' ? '#2B54E8' : palette.tint;
+  const color = variant === 'primary' ? palette.onTint : variant === 'onHero' ? '#2B54E8' : palette.tint;
   return (
     <Pressable
       accessibilityRole="button"
@@ -509,7 +531,14 @@ export function Chip({ label, selected, onPress }: { label: string; selected: bo
         styles.chip,
         selected
           ? { backgroundColor: palette.tint }
-          : [{ backgroundColor: palette.surface, borderColor: palette.hair, borderWidth: 1 }, cardShadow(palette.shadow)],
+          : [
+              {
+                backgroundColor: palette.surface,
+                borderColor: palette.hair,
+                borderWidth: 1,
+              },
+              cardShadow(palette.shadow),
+            ],
         pressed && { opacity: 0.7 },
       ]}>
       <Text style={[styles.chipLabel, { color: selected ? palette.onTint : palette.text }]}>{label}</Text>
@@ -538,10 +567,7 @@ export function Segmented<T extends string>({
             accessibilityRole="tab"
             accessibilityState={{ selected }}
             onPress={() => onChange(option)}
-            style={[
-              styles.segment,
-              selected && [{ backgroundColor: palette.surface }, cardShadow(palette.shadow)],
-            ]}>
+            style={[styles.segment, selected && [{ backgroundColor: palette.surface }, cardShadow(palette.shadow)]]}>
             <Text
               numberOfLines={1}
               style={[styles.segmentLabel, { color: selected ? palette.text : palette.textSecondary }]}>
@@ -595,9 +621,36 @@ export function Wordmark({ size = 22 }: { size?: number }) {
   return (
     <View accessible accessibilityLabel="simplytk" style={styles.wordmark}>
       <View style={{ width: 32 * u, height: 18 * u, justifyContent: 'center' }}>
-        <View style={{ position: 'absolute', left: 4 * u, right: 4 * u, height: 7.6 * u, borderRadius: 3.8 * u, backgroundColor: palette.tint }} />
-        <View style={{ position: 'absolute', left: 0, width: 10.2 * u, height: 17.8 * u, borderRadius: 3.8 * u, backgroundColor: palette.tint }} />
-        <View style={{ position: 'absolute', right: 0, width: 10.2 * u, height: 17.8 * u, borderRadius: 3.8 * u, backgroundColor: palette.tint }} />
+        <View
+          style={{
+            position: 'absolute',
+            left: 4 * u,
+            right: 4 * u,
+            height: 7.6 * u,
+            borderRadius: 3.8 * u,
+            backgroundColor: palette.tint,
+          }}
+        />
+        <View
+          style={{
+            position: 'absolute',
+            left: 0,
+            width: 10.2 * u,
+            height: 17.8 * u,
+            borderRadius: 3.8 * u,
+            backgroundColor: palette.tint,
+          }}
+        />
+        <View
+          style={{
+            position: 'absolute',
+            right: 0,
+            width: 10.2 * u,
+            height: 17.8 * u,
+            borderRadius: 3.8 * u,
+            backgroundColor: palette.tint,
+          }}
+        />
       </View>
       <Text style={[styles.wordmarkText, { fontSize: size, color: palette.text }]}>
         simply<Text style={{ color: palette.tint }}>tk</Text>
@@ -611,13 +664,33 @@ export function IconTile({ icon, tone = 'blue', size = 36 }: { icon: Icon; tone?
   const palette = usePalette();
   const colors = toneColors(palette, tone);
   return (
-    <View style={[styles.iconTile, { width: size, height: size, borderRadius: size * 0.3, backgroundColor: colors.bg }]}>
+    <View
+      style={[
+        styles.iconTile,
+        {
+          width: size,
+          height: size,
+          borderRadius: size * 0.3,
+          backgroundColor: colors.bg,
+        },
+      ]}>
       <SymbolView name={{ ...icon, web: icon.android }} tintColor={colors.fg} size={size * 0.5} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.three,
+  },
+  headerButton: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   topBar: {
     position: 'absolute',
     top: 0,
