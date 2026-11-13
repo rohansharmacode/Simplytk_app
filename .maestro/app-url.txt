@@ -1,2 +1,1 @@
-https://expo.dev/artifacts/eas/9CYHbcnQOGOWKui0hsKG9-kG_YgvfXR1dH7xFX6yp9E.tar.gz
-# run 2: tap the title to close the keyboard
+https://expo.dev/artifacts/eas/qLaefUXS7Q76w26H2fmoQ6tZE4-kL-d4m7FMMxG0hjE.tar.gz
