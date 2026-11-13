@@ -43,12 +43,14 @@ export async function fetchOpenings(filters: Filters, page: number, now = new Da
   }
   const firm = firmSearchTerm(filters.firm);
   if (firm) query = query.ilike('companies.name', `%${firm}%`);
+  // Deadlines are often a bare date, so one that passed less than a day ago still shows.
+  const since = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
   const cutoff = deadlineCutoff(filters.deadline, now);
   if (cutoff) {
-    query = query
-      .not('deadline', 'is', null)
-      .gte('deadline', new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString())
-      .lte('deadline', cutoff.toISOString());
+    query = query.not('deadline', 'is', null).gte('deadline', since).lte('deadline', cutoff.toISOString());
+  } else {
+    // Some rows stay marked open after their deadline; leave those out, as closed.
+    query = query.or(`deadline.is.null,deadline.gte.${since}`);
   }
 
   const from = page * PAGE_SIZE;

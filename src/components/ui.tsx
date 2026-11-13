@@ -169,6 +169,25 @@ function TopBar({ title, scrollY, top, height }: { title: string; scrollY: Anima
   );
 }
 
+/**
+ * The same frosted top bar for a tab whose list isn't a `Screen` (the Tracker's FlatList).
+ * Spread `scrollProps` on an Animated list, render `bar` after it, and wrap the screen in
+ * `Provider` so its `Title` names the bar.
+ */
+export function useTopBar() {
+  const insets = useSafeAreaInsets();
+  const [title, setTitle] = useState('');
+  const [scrollY] = useState(() => new Animated.Value(0));
+  const top = Platform.OS === 'ios' ? -insets.top : 0;
+  const onScroll = Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true });
+  return {
+    scrollProps: { onScroll, scrollEventThrottle: 16 },
+    bar: <TopBar title={title} scrollY={scrollY} top={top} height={insets.top} />,
+    Provider: ScreenTitleContext.Provider,
+    setTitle,
+  };
+}
+
 /** A small uppercase label: the date over a title, or a label on a card. */
 export function Kicker({ children, color }: { children: ReactNode; color?: string }) {
   const palette = usePalette();

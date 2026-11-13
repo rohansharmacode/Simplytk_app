@@ -42,3 +42,12 @@ appId: com.simplytk.app
 - takeScreenshot: 09-more
 - scroll
 - takeScreenshot: 10-more-scrolled
+- tapOn: 'CV rater'
+- waitForAnimationToEnd
+- takeScreenshot: 11-cv-rater
+- scroll
+- takeScreenshot: 12-cv-rater-scrolled
+- back
+- tapOn: 'Ranks'
+- scroll
+- takeScreenshot: 13-ranks-scrolled
