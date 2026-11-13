@@ -951,7 +951,7 @@ describe('links inside a page', () => {
   it('injects the bridge', async () => {
     const { page } = await openPage();
     expect(page.props.injectedJavaScriptBeforeContentLoaded).toContain('window.SimplytkNative');
-    expect(page.props.applicationNameForUserAgent).toMatch(/^simplytk-app\/\d+\.\d+\.\d+$/);
+    expect(page.props.applicationNameForUserAgent).toMatch(/^simplytk-app\/\d+\.\d+\.\d+ simplytk-ios-app$/);
   });
 });
 

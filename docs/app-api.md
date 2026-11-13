@@ -89,5 +89,3 @@ to apply" reminders, streak nudges and mentoring check-ins. `hrefForNotification
 - **Web views signed in.** Pages opened from More have their own sign-in. A
   `POST /api/app/web-session` returning a one-time sign-in link would let the app sign
   them in without asking again.
-- **Purchases.** The native app's web views send `simplytk-app/<version>` in their user
-  agent. On iOS the site should hide checkouts for it, as it does for `simplytk-ios-app`.

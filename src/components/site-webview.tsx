@@ -17,24 +17,11 @@ import { LoadError } from '@/components/load-error';
 import { useKeyboardOverlap } from '@/hooks/use-keyboard-overlap';
 import { usePalette } from '@/hooks/use-palette';
 import { getSiteState, markFirstPageLoaded, updateSiteState } from '@/lib/app-state';
-import {
-  bridgeScript,
-  navigateScript,
-  parseBridgeMessage,
-  replyScript,
-  scrollToTopOrGoScript,
-} from '@/lib/bridge';
+import { bridgeScript, navigateScript, parseBridgeMessage, replyScript, scrollToTopOrGoScript } from '@/lib/bridge';
 import { shareFile } from '@/lib/files';
 import { openOutside, shareLink } from '@/lib/open';
 import { requestPushToken } from '@/lib/push';
-import {
-  classifyUrl,
-  cleanTitle,
-  isIgnorableLoadError,
-  isSiteUrl,
-  SITE_HOSTS,
-  siteUrl,
-} from '@/lib/site';
+import { classifyUrl, cleanTitle, isIgnorableLoadError, isSiteUrl, SITE_HOSTS, siteUrl } from '@/lib/site';
 import { hideSplash } from '@/lib/splash';
 
 const APP_VERSION = Constants.expoConfig?.version ?? '1.0.0';
@@ -44,6 +31,13 @@ const BRIDGE = bridgeScript({
   appVersion: APP_VERSION,
   siteHosts: SITE_HOSTS,
 });
+
+/**
+ * Appended to the web view's user agent. On iOS it also carries the token the site already
+ * uses for its Capacitor app, so simplytk.com hides every purchase, as the App Store requires.
+ */
+const USER_AGENT =
+  Platform.OS === 'ios' ? `simplytk-app/${APP_VERSION} simplytk-ios-app` : `simplytk-app/${APP_VERSION}`;
 
 export type SiteWebViewHandle = {
   /** Show a site path, e.g. from a deep link or notification. */
@@ -252,7 +246,7 @@ export function SiteWebView({ initialPath, insetTop, onTitleChange, onUrlChange,
           onError={onError}
           onContentProcessDidTerminate={() => webRef.current?.reload()}
           onRenderProcessGone={() => remount(currentUrl.current)}
-          applicationNameForUserAgent={`simplytk-app/${APP_VERSION}`}
+          applicationNameForUserAgent={USER_AGENT}
           domStorageEnabled
           allowsBackForwardNavigationGestures
           pullToRefreshEnabled

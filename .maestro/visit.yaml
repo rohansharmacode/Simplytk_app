@@ -6,7 +6,7 @@ appId: com.simplytk.app
 # iOS asks "Open in simplytk?" for each link.
 - waitForAnimationToEnd
 - tapOn:
-    point: 67%, 55%
+    text: 'Open'
     optional: true
 - waitForAnimationToEnd:
     timeout: 5000

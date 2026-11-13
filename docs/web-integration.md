@@ -11,7 +11,9 @@ Every page loaded in the app has:
 
 - `window.SimplytkNative`, which is `{ platform: 'ios' | 'android', appVersion, requestPushToken(), share() }`.
 - The classes `simplytk-native-app` and `simplytk-native-ios` or `simplytk-native-android` on `<html>`.
-- `simplytk-app/<version>` at the end of the user agent, for server-side analytics.
+- `simplytk-app/<version>` at the end of the user agent, for server-side analytics. On iOS it is
+  followed by `simplytk-ios-app`, the Capacitor app's token, so the site hides every purchase
+  (`useNativeIosApp()`) and its checkout functions refuse one (`isNativeIosRequest()`).
 - `?source=app` on the first URL each tab loads, matching the PWA's `?source=pwa`.
 
 The app already hides the site's mobile tab bar (`nav[aria-label="Primary"].fixed.bottom-0`)
