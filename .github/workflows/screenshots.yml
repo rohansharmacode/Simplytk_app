@@ -1,7 +1,8 @@
 # Runs .maestro/tour.yaml on an iPhone simulator and pushes a screenshot of every screen to
 # the `screenshots` branch, so the app's look can be checked without a phone.
 # It runs when .maestro/app-url.txt changes: put the URL of an EAS simulator build
-# (`eas build -p ios --profile simulator`) in that file and push.
+# (`eas build -p ios --profile simulator`) on its first line and push. Lines after the
+# first are notes, so editing one reruns the tour on the same build.
 # Needs the repository secrets MAESTRO_TEST_EMAIL and MAESTRO_TEST_PASSWORD (a test account).
 name: Screenshot tour
 
@@ -47,6 +48,9 @@ jobs:
           mkdir -p shots
           cd shots
           maestro test ../.maestro/tour.yaml || echo "The tour stopped early; see the log above."
+          # Maestro saves screenshots in its own test folder, failure shots included.
+          find "$HOME/.maestro/tests" -name "*.png" -exec cp {} . \;
+          ls -la
 
       - name: Push the screenshots to the screenshots branch
         if: always()
