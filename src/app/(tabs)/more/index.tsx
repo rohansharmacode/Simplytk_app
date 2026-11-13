@@ -15,6 +15,8 @@ import { hideSplash } from '@/lib/splash';
 type Item = {
   label: string;
   icon: { ios: SFSymbol; android: AndroidSymbol };
+  /** Pages that sell something. The iOS app sells nothing (App Store billing rules). */
+  sells?: boolean;
 } & ({ path: string } | { href: Href } | { onPress: () => void });
 
 type Section = { title: string; tone: Tone; items: Item[] };
@@ -25,7 +27,11 @@ const SECTIONS: Section[] = [
     tone: 'blue',
     items: [
       { label: 'My applications', href: '/applications', icon: { ios: 'checklist', android: 'checklist' } },
-      { label: 'Opening soon', href: '/opening-soon', icon: { ios: 'calendar.badge.clock', android: 'event_upcoming' } },
+      {
+        label: 'Opening soon',
+        href: '/opening-soon',
+        icon: { ios: 'calendar.badge.clock', android: 'event_upcoming' },
+      },
       { label: 'Live feed', href: '/live', icon: { ios: 'dot.radiowaves.left.and.right', android: 'sensors' } },
       { label: 'Startup opportunities', href: '/opportunities', icon: { ios: 'lightbulb', android: 'lightbulb' } },
       { label: 'Pre-uni tracker', href: '/tracker?stage=preuni', icon: { ios: 'graduationcap', android: 'school' } },
@@ -60,10 +66,19 @@ const SECTIONS: Section[] = [
     tone: 'amber',
     items: [
       { label: '1:1 mentoring', path: '/', icon: { ios: 'person.2', android: 'group' } },
-      { label: 'Spring Week Playbook', path: '/spring-week-playbook', icon: { ios: 'book.closed', android: 'auto_stories' } },
+      {
+        label: 'Spring Week Playbook',
+        path: '/spring-week-playbook',
+        sells: true,
+        icon: { ios: 'book.closed', android: 'auto_stories' },
+      },
       { label: 'Resources', path: '/resources', icon: { ios: 'tray.and.arrow.down', android: 'download' } },
-      { label: 'WhatsApp community', path: '/whatsapp', icon: { ios: 'bubble.left.and.bubble.right', android: 'forum' } },
-      { label: 'Pricing', path: '/pricing', icon: { ios: 'tag', android: 'sell' } },
+      {
+        label: 'WhatsApp community',
+        path: '/whatsapp',
+        icon: { ios: 'bubble.left.and.bubble.right', android: 'forum' },
+      },
+      { label: 'Pricing', path: '/pricing', sells: true, icon: { ios: 'tag', android: 'sell' } },
     ],
   },
   {
@@ -71,7 +86,11 @@ const SECTIONS: Section[] = [
     tone: 'blue',
     items: [
       // Also where the account can be deleted, which App Review checks for.
-      { label: 'Account settings', path: '/dashboard/settings', icon: { ios: 'person.crop.circle', android: 'account_circle' } },
+      {
+        label: 'Account settings',
+        path: '/dashboard/settings',
+        icon: { ios: 'person.crop.circle', android: 'account_circle' },
+      },
       {
         label: 'Share simplytk',
         onPress: () => void shareLink({ title: 'simplytk', url: SITE_ORIGIN }),
@@ -153,16 +172,18 @@ export default function MoreScreen() {
         <View key={section.title} style={styles.section}>
           <Text style={[styles.sectionTitle, { color: palette.textSecondary }]}>{section.title.toUpperCase()}</Text>
           <Group>
-            {section.items.map((item) => (
-              <Row
-                key={item.label}
-                icon={item.icon}
-                tone={item.label === 'Sign out' ? 'red' : section.tone}
-                title={item.label}
-                chevron={'path' in item}
-                onPress={() => open(item)}
-              />
-            ))}
+            {section.items
+              .filter((item) => !(item.sells && Platform.OS === 'ios'))
+              .map((item) => (
+                <Row
+                  key={item.label}
+                  icon={item.icon}
+                  tone={item.label === 'Sign out' ? 'red' : section.tone}
+                  title={item.label}
+                  chevron={'path' in item}
+                  onPress={() => open(item)}
+                />
+              ))}
           </Group>
         </View>
       ))}
