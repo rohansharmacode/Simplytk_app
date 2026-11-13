@@ -370,7 +370,7 @@ describe('signing in', () => {
     setSessionForTests(null);
     const { app } = await launch('/tracker');
     expect(app.getPathname()).toBe('/sign-in');
-    expect(screen.getByText('Your stars, streak and scores match simplytk.com.')).toBeTruthy();
+    expect(screen.getByText('Sign in to simplytk')).toBeTruthy();
     expect(Queries.fetchOpenings).not.toHaveBeenCalled();
   });
 
@@ -416,6 +416,17 @@ describe('signing in', () => {
       { preferUniversalLinks: true },
     );
     expect(supabase.auth.setSession).toHaveBeenCalledWith({ access_token: 'a', refresh_token: 'r' });
+  });
+
+  it('keeps the email form tucked away while quicker ways are offered', async () => {
+    setSessionForTests(null);
+    jest.spyOn(Platform, 'Version', 'get').mockReturnValue('18.2');
+    await launch();
+    expect(screen.queryByLabelText('Password')).toBeNull();
+    await press('Use email or phone');
+    expect(screen.getByLabelText('Password')).toBeTruthy();
+    await press('Other ways to sign in');
+    expect(screen.getByText('Continue with Google')).toBeTruthy();
   });
 
   it('explains when email sign-in is switched off', async () => {

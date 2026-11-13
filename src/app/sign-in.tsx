@@ -2,12 +2,12 @@ import * as AppleAuthentication from 'expo-apple-authentication';
 import * as Crypto from 'expo-crypto';
 import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Text, TextInput } from '@/components/text';
-import { Button, Chip, Segmented, Wordmark } from '@/components/ui';
+import { Button, Chip, Segmented } from '@/components/ui';
 import { Radius, Spacing } from '@/constants/theme';
 import { usePalette, useScheme } from '@/hooks/use-palette';
 import { GOOGLE_RETURN_URL, googleSignInUrl, googleSessionError, readOAuthReturn } from '@/lib/google';
@@ -47,6 +47,8 @@ export default function SignInScreen() {
   const [sentTo, setSentTo] = useState<string | null>(null);
   const [code, setCode] = useState('');
   const [notice, setNotice] = useState<string | null>(null);
+  // Apple and Google first, as in Apple's own apps; the email and phone form only on request.
+  const [showForm, setShowForm] = useState(false);
 
   useEffect(hideSplash, []);
 
@@ -172,17 +174,20 @@ export default function SignInScreen() {
     { backgroundColor: palette.surface, borderColor: palette.hair, color: palette.text },
   ];
 
+  const quick = canSignInWithGoogle() || appleAvailable;
+  const formOpen = showForm || !quick;
+
   return (
     <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: palette.background }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <View style={[styles.head, { paddingTop: insets.top + Spacing.five }]}>
-        <Wordmark size={26} />
+      <View style={[styles.head, { paddingTop: insets.top }]}>
+        <Image source={require('@/assets/images/icon.png')} style={styles.icon} accessibilityIgnoresInvertColors />
         <Text accessibilityRole="header" style={[styles.title, { color: palette.text }]}>
-          Welcome back
+          Sign in to simplytk
         </Text>
         <Text style={[styles.lede, { color: palette.textSecondary }]}>
-          Your stars, streak and scores match simplytk.com.
+          Use the account you have on simplytk.com.
         </Text>
       </View>
 
@@ -192,126 +197,164 @@ export default function SignInScreen() {
           styles.sheet,
           { backgroundColor: palette.surface, paddingBottom: Math.max(insets.bottom, Spacing.four) + Spacing.two },
         ]}>
-        <Segmented
-          options={[
-            ['email', 'Email'],
-            ['phone', 'Phone'],
-          ]}
-          value={method}
-          onChange={(next) => {
-            setMethod(next);
-            setError(null);
-          }}
-        />
-        {method === 'email' ? (
+        {formOpen ? (
           <>
-            <TextInput
-              accessibilityLabel="Email"
-              placeholder="Email"
-              placeholderTextColor={palette.faint}
-              autoCapitalize="none"
-              autoComplete="email"
-              keyboardType="email-address"
-              textContentType="username"
-              returnKeyType="next"
-              value={email}
-              onChangeText={setEmail}
-              style={inputStyle}
+            <Segmented
+              options={[
+                ['email', 'Email'],
+                ['phone', 'Phone'],
+              ]}
+              value={method}
+              onChange={(next) => {
+                setMethod(next);
+                setError(null);
+              }}
             />
-            <TextInput
-              accessibilityLabel="Password"
-              placeholder="Password"
-              placeholderTextColor={palette.faint}
-              secureTextEntry
-              autoComplete="current-password"
-              textContentType="password"
-              returnKeyType="go"
-              value={password}
-              onChangeText={setPassword}
-              onSubmitEditing={signInWithPassword}
-              style={inputStyle}
-            />
+            {method === 'email' ? (
+              <>
+                <TextInput
+                  accessibilityLabel="Email"
+                  placeholder="Email"
+                  placeholderTextColor={palette.faint}
+                  autoCapitalize="none"
+                  autoComplete="email"
+                  keyboardType="email-address"
+                  textContentType="username"
+                  returnKeyType="next"
+                  value={email}
+                  onChangeText={setEmail}
+                  style={inputStyle}
+                />
+                <TextInput
+                  accessibilityLabel="Password"
+                  placeholder="Password"
+                  placeholderTextColor={palette.faint}
+                  secureTextEntry
+                  autoComplete="current-password"
+                  textContentType="password"
+                  returnKeyType="go"
+                  value={password}
+                  onChangeText={setPassword}
+                  onSubmitEditing={signInWithPassword}
+                  style={inputStyle}
+                />
+              </>
+            ) : sentTo ? (
+              <>
+                <Text style={[styles.note, { color: palette.textSecondary }]}>We texted a code to {sentTo}.</Text>
+                <TextInput
+                  accessibilityLabel="Code"
+                  placeholder="6-digit code"
+                  placeholderTextColor={palette.faint}
+                  keyboardType="number-pad"
+                  autoComplete="sms-otp"
+                  textContentType="oneTimeCode"
+                  returnKeyType="go"
+                  value={code}
+                  onChangeText={(text) => setCode(cleanCode(text))}
+                  onSubmitEditing={verifyCode}
+                  style={inputStyle}
+                />
+              </>
+            ) : (
+              <>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.methods}>
+                  {PHONE_COUNTRIES.map((c) => (
+                    <Chip key={c.iso} label={`${c.name} +${c.dial}`} selected={country === c.iso} onPress={() => setCountry(c.iso)} />
+                  ))}
+                </ScrollView>
+                <TextInput
+                  accessibilityLabel="Mobile number"
+                  placeholder="Mobile number"
+                  placeholderTextColor={palette.faint}
+                  keyboardType="phone-pad"
+                  autoComplete="tel"
+                  textContentType="telephoneNumber"
+                  returnKeyType="go"
+                  value={phone}
+                  onChangeText={setPhone}
+                  onSubmitEditing={sendPhoneCode}
+                  style={inputStyle}
+                />
+              </>
+            )}
           </>
-        ) : sentTo ? (
-          <>
-            <Text style={[styles.note, { color: palette.textSecondary }]}>We texted a code to {sentTo}.</Text>
-            <TextInput
-              accessibilityLabel="Code"
-              placeholder="6-digit code"
-              placeholderTextColor={palette.faint}
-              keyboardType="number-pad"
-              autoComplete="sms-otp"
-              textContentType="oneTimeCode"
-              returnKeyType="go"
-              value={code}
-              onChangeText={(text) => setCode(cleanCode(text))}
-              onSubmitEditing={verifyCode}
-              style={inputStyle}
-            />
-          </>
-        ) : (
-          <>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.methods}>
-              {PHONE_COUNTRIES.map((c) => (
-                <Chip key={c.iso} label={`${c.name} +${c.dial}`} selected={country === c.iso} onPress={() => setCountry(c.iso)} />
-              ))}
-            </ScrollView>
-            <TextInput
-              accessibilityLabel="Mobile number"
-              placeholder="Mobile number"
-              placeholderTextColor={palette.faint}
-              keyboardType="phone-pad"
-              autoComplete="tel"
-              textContentType="telephoneNumber"
-              returnKeyType="go"
-              value={phone}
-              onChangeText={setPhone}
-              onSubmitEditing={sendPhoneCode}
-              style={inputStyle}
-            />
-          </>
-        )}
+        ) : null}
         {error ? (
           <Text accessibilityRole="alert" style={[styles.note, { color: palette.danger }]}>
             {error}
           </Text>
         ) : null}
         {notice ? <Text style={[styles.note, { color: palette.textSecondary }]}>{notice}</Text> : null}
-        {method === 'email' ? (
-          <Button label="Sign in" onPress={signInWithPassword} busy={busy} disabled={!email.trim() || !password} />
-        ) : sentTo ? (
+        {formOpen ? (
           <>
-            <Button label="Verify and sign in" onPress={verifyCode} busy={busy} disabled={code.length < 6} />
-            <View style={styles.methods}>
-              <Chip label="Send a new code" selected={false} onPress={() => void resendCode()} />
-              <Chip label="Use a different number" selected={false} onPress={() => { setSentTo(null); setNotice(null); setError(null); }} />
+            {method === 'email' ? (
+              <Button label="Sign in" onPress={signInWithPassword} busy={busy} disabled={!email.trim() || !password} />
+            ) : sentTo ? (
+              <>
+                <Button label="Verify and sign in" onPress={verifyCode} busy={busy} disabled={code.length < 6} />
+                <View style={styles.methods}>
+                  <Chip label="Send a new code" selected={false} onPress={() => void resendCode()} />
+                  <Chip label="Use a different number" selected={false} onPress={() => { setSentTo(null); setNotice(null); setError(null); }} />
+                </View>
+              </>
+            ) : (
+              <Button label="Text me a code" onPress={sendPhoneCode} busy={busy} disabled={!phone.trim()} />
+            )}
+            <View style={styles.links}>
+              {quick ? (
+                <TextLink label="Other ways to sign in" onPress={() => { setShowForm(false); setError(null); }} />
+              ) : (
+                <TextLink label="Create an account" onPress={() => void openOutside(`${SITE_ORIGIN}/auth`, 'browser')} />
+              )}
+              {method === 'email' ? (
+                <TextLink label="Forgot password?" onPress={() => void openOutside(`${SITE_ORIGIN}/auth/reset`, 'browser')} />
+              ) : null}
             </View>
           </>
         ) : (
-          <Button label="Text me a code" onPress={sendPhoneCode} busy={busy} disabled={!phone.trim()} />
+          <>
+            {appleAvailable ? (
+              <AppleAuthentication.AppleAuthenticationButton
+                buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
+                buttonStyle={
+                  scheme === 'dark'
+                    ? AppleAuthentication.AppleAuthenticationButtonStyle.WHITE
+                    : AppleAuthentication.AppleAuthenticationButtonStyle.BLACK
+                }
+                cornerRadius={Radius.pill}
+                style={styles.apple}
+                onPress={signInWithApple}
+              />
+            ) : null}
+            {canSignInWithGoogle() ? (
+              <OutlineButton label="Continue with Google" onPress={signInWithGoogle} />
+            ) : null}
+            <OutlineButton label="Use email or phone" onPress={() => { setShowForm(true); setError(null); }} />
+            <View style={[styles.links, styles.centred]}>
+              <TextLink label="New here? Create an account" onPress={() => void openOutside(`${SITE_ORIGIN}/auth`, 'browser')} />
+            </View>
+          </>
         )}
-        {canSignInWithGoogle() ? (
-          <Button variant="secondary" label="Continue with Google" onPress={signInWithGoogle} />
-        ) : null}
-        {appleAvailable ? (
-          <AppleAuthentication.AppleAuthenticationButton
-            buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
-            buttonStyle={
-              scheme === 'dark'
-                ? AppleAuthentication.AppleAuthenticationButtonStyle.WHITE
-                : AppleAuthentication.AppleAuthenticationButtonStyle.BLACK
-            }
-            cornerRadius={Radius.pill}
-            style={styles.apple}
-            onPress={signInWithApple}
-          />
-        ) : null}
-        <View style={styles.links}>
-          <TextLink label="Forgot password?" onPress={() => void openOutside(`${SITE_ORIGIN}/auth/reset`, 'browser')} />
-          <TextLink label="Create an account" onPress={() => void openOutside(`${SITE_ORIGIN}/auth`, 'browser')} />
-        </View>
       </View>
     </KeyboardAvoidingView>
+  );
+}
+
+/** A full-width button with a thin edge, the same size as the Sign in with Apple one. */
+function OutlineButton({ label, onPress }: { label: string; onPress: () => void }) {
+  const palette = usePalette();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.outline,
+        { borderColor: palette.hair, backgroundColor: palette.surface },
+        pressed && { opacity: 0.6 },
+      ]}>
+      <Text style={[styles.outlineLabel, { color: palette.text }]}>{label}</Text>
+    </Pressable>
   );
 }
 
@@ -331,20 +374,42 @@ const styles = StyleSheet.create({
   head: {
     flex: 1,
     paddingHorizontal: Spacing.five,
-    paddingBottom: Spacing.five,
     gap: Spacing.two,
-    justifyContent: 'flex-end',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  icon: {
+    width: 84,
+    height: 84,
+    borderRadius: 19,
+    borderCurve: 'continuous',
+    marginBottom: Spacing.three,
+  },
+  outline: {
+    minHeight: 50,
+    borderRadius: Radius.pill,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  outlineLabel: {
+    fontSize: 17,
+    fontWeight: '600',
+  },
+  centred: {
+    justifyContent: 'center',
   },
   title: {
-    fontSize: 32,
-    lineHeight: 38,
+    fontSize: 28,
+    lineHeight: 34,
     fontWeight: '700',
     letterSpacing: -0.9,
-    marginTop: Spacing.two,
+    textAlign: 'center',
   },
   lede: {
     fontSize: 16,
     lineHeight: 22,
+    textAlign: 'center',
   },
   sheet: {
     borderTopLeftRadius: 32,
