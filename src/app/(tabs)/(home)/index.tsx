@@ -97,7 +97,7 @@ export default function HomeScreen() {
             <GlassButton
               icon={{ ios: 'magnifyingglass', android: 'search' }}
               label="Search openings"
-              onPress={() => router.navigate('/tracker')}
+              onPress={() => router.navigate(`/tracker?search=${Date.now()}`)}
             />
             <GlassButton
               icon={{ ios: 'person.crop.circle', android: 'account_circle' }}

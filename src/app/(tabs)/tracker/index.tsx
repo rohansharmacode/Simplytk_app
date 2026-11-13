@@ -1,7 +1,16 @@
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { FlatList, Platform, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import {
+  FlatList,
+  Platform,
+  TextInput as NativeTextInput,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -41,7 +50,8 @@ export default function TrackerScreen() {
   const insets = useSafeAreaInsets();
   const topInset = Platform.OS === 'android' ? insets.top : 0;
   const router = useRouter();
-  const params = useLocalSearchParams<{ stage?: string }>();
+  const params = useLocalSearchParams<{ stage?: string; search?: string }>();
+  const searchInput = useRef<React.ComponentRef<typeof NativeTextInput>>(null);
   const [view, setView] = useState<View_>('all');
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const stage: Stage = filters.stage ?? 'uni';
@@ -74,6 +84,11 @@ export default function TrackerScreen() {
       setFilters((f) => (f.stage === next ? f : { ...DEFAULT_FILTERS, region: f.region, firm: f.firm, stage: next }));
     }
   }
+
+  // Home's search button opens the tracker with ?search=<time>, which focuses the firm search.
+  useEffect(() => {
+    if (params.search) searchInput.current?.focus();
+  }, [params.search]);
 
   useEffect(() => {
     const timer = setTimeout(() => setFilters((f) => ({ ...f, firm: firmInput })), SEARCH_DELAY_MS);
@@ -170,6 +185,7 @@ export default function TrackerScreen() {
           size={17}
         />
         <TextInput
+          ref={searchInput}
           accessibilityLabel="Search firms"
           placeholder="Search by firm"
           placeholderTextColor={palette.faint}

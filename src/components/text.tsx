@@ -49,6 +49,6 @@ export function Text({ style, ...props }: TextProps) {
   return <NativeText {...props} style={withInter(style as TextStyle)} />;
 }
 
-export function TextInput({ style, ...props }: TextInputProps) {
+export function TextInput({ style, ...props }: TextInputProps & { ref?: React.Ref<React.ComponentRef<typeof NativeTextInput>> }) {
   return <NativeTextInput {...props} style={withInter(style as TextStyle)} />;
 }
