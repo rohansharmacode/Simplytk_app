@@ -1,0 +1,60 @@
+# Runs .maestro/tour.yaml on an iPhone simulator and pushes a screenshot of every screen to
+# the `screenshots` branch, so the app's look can be checked without a phone.
+# Give it the URL of an EAS simulator build (`eas build -p ios --profile simulator`).
+# Needs the repository secrets MAESTRO_TEST_EMAIL and MAESTRO_TEST_PASSWORD (a test account).
+name: Screenshot tour
+
+on:
+  workflow_dispatch:
+    inputs:
+      app_url:
+        description: URL of the EAS iOS simulator build (.tar.gz)
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  tour:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Start an iPhone simulator and install the app
+        env:
+          APP_URL: ${{ inputs.app_url }}
+        run: |
+          curl -fsSL -o app.tar.gz "$APP_URL"
+          mkdir app && tar -xzf app.tar.gz -C app
+          APP=$(find app -maxdepth 2 -name "*.app" | head -1)
+          DEVICE=$(xcrun simctl list devices available | grep -E "iPhone 1[5-9] Pro \(" | head -1 | grep -oE "[0-9A-F-]{36}")
+          [ -n "$DEVICE" ] || DEVICE=$(xcrun simctl list devices available | grep iPhone | head -1 | grep -oE "[0-9A-F-]{36}")
+          xcrun simctl list devices available | grep "$DEVICE"
+          xcrun simctl boot "$DEVICE"
+          xcrun simctl bootstatus "$DEVICE" -b
+          xcrun simctl install "$DEVICE" "$APP"
+
+      - name: Install Maestro
+        run: |
+          curl -fsSL -o maestro.zip "https://github.com/mobile-dev-inc/maestro/releases/latest/download/maestro.zip"
+          unzip -q maestro.zip -d "$HOME/maestro-dist"
+          echo "$HOME/maestro-dist/maestro/bin" >> "$GITHUB_PATH"
+
+      - name: Run the tour
+        env:
+          MAESTRO_TEST_EMAIL: ${{ secrets.MAESTRO_TEST_EMAIL }}
+          MAESTRO_TEST_PASSWORD: ${{ secrets.MAESTRO_TEST_PASSWORD }}
+        run: |
+          mkdir -p shots
+          cd shots
+          maestro test ../.maestro/tour.yaml || echo "The tour stopped early; see the log above."
+
+      - name: Push the screenshots to the screenshots branch
+        if: always()
+        run: |
+          cd shots
+          git init -q -b screenshots
+          git add -A
+          git -c user.name="screenshot tour" -c user.email="actions@github.com" commit -q -m "Screenshots from run ${{ github.run_id }}" || exit 0
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" screenshots

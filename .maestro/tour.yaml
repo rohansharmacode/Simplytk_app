@@ -1,6 +1,6 @@
 # Walks through the app on an iOS simulator and takes a screenshot of each screen, so the
-# look can be checked without a phone. Run by .eas/workflows/screenshots.yml.
-# MAESTRO_TEST_EMAIL and MAESTRO_TEST_PASSWORD come from the EAS "preview" environment.
+# look can be checked without a phone. Run by .github/workflows/screenshots.yml.
+# MAESTRO_TEST_EMAIL and MAESTRO_TEST_PASSWORD are GitHub repository secrets.
 appId: com.simplytk.app
 ---
 - launchApp:
