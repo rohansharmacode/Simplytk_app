@@ -1,2 +1,1 @@
-https://expo.dev/artifacts/eas/qLaefUXS7Q76w26H2fmoQ6tZE4-kL-d4m7FMMxG0hjE.tar.gz
-# rerun: driver failed to start
+https://expo.dev/artifacts/eas/tqjr-C5eIwP4MYNl6D6O85unfDERgXGztbgNljnMGbA.tar.gz
