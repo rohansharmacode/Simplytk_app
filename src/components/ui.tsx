@@ -8,6 +8,7 @@ import { createContext, Fragment, useContext, useEffect, useLayoutEffect, useSta
 import {
   ActivityIndicator,
   Animated,
+  ScrollView,
   Platform,
   Pressable,
   RefreshControl,
@@ -327,29 +328,49 @@ export function SectionHeader({
   action?: { label: string; onPress: () => void };
 }) {
   const palette = usePalette();
-  const colors = toneColors(palette, tone);
-  return (
+  // Music and the App Store: a bold title, and when there's more to see, a chevron after it
+  // and the whole header tappable. The icon and tone are kept for callers but not drawn.
+  void icon;
+  void tone;
+  const head = (
     <View style={styles.sectionHeader}>
-      {icon ? (
-        <View style={[styles.sectionIcon, { backgroundColor: colors.bg }]}>
-          <SymbolView name={{ ...icon, web: icon.android }} tintColor={colors.fg} size={14} />
-        </View>
-      ) : null}
       <Text accessibilityRole="header" style={[styles.sectionTitle, { color: palette.text }]} numberOfLines={1}>
         {title}
       </Text>
-      {count != null ? (
-        <View style={[styles.count, { backgroundColor: colors.bg }]}>
-          <Text style={[styles.countText, Tabular, { color: colors.fg }]}>{count}</Text>
-        </View>
+      {count != null && count > 0 ? (
+        <Text style={[styles.sectionCount, Tabular, { color: palette.textSecondary }]}>{count}</Text>
       ) : null}
-      <View style={{ flex: 1 }} />
-      {action ? (
-        <Pressable accessibilityRole="button" hitSlop={8} onPress={action.onPress}>
-          <Text style={[styles.sectionAction, { color: palette.tint }]}>{action.label}</Text>
-        </Pressable>
-      ) : null}
+      {action ? <SymbolView name={{ ios: 'chevron.right', android: 'chevron_right', web: 'chevron_right' }} tintColor={palette.textSecondary} size={15} weight="bold" /> : null}
     </View>
+  );
+  if (!action) return head;
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${title}, ${action.label}`}
+      onPress={action.onPress}
+      style={({ pressed }) => pressed && { opacity: 0.5 }}>
+      {head}
+    </Pressable>
+  );
+}
+
+/**
+ * A row of cards you swipe sideways, as in Music and the App Store. It runs to the screen's
+ * edges and snaps to each card.
+ */
+export function Carousel({ children, itemWidth }: { children: ReactNode; itemWidth: number }) {
+  return (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      decelerationRate="fast"
+      snapToInterval={itemWidth + Spacing.three}
+      snapToAlignment="start"
+      style={styles.carousel}
+      contentContainerStyle={styles.carouselContent}>
+      {children}
+    </ScrollView>
   );
 }
 
@@ -805,10 +826,21 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '700',
-    letterSpacing: -0.4,
+    letterSpacing: -0.5,
     flexShrink: 1,
+  },
+  sectionCount: {
+    fontSize: 17,
+    fontWeight: '600',
+  },
+  carousel: {
+    marginHorizontal: -Spacing.four,
+  },
+  carouselContent: {
+    paddingHorizontal: Spacing.four,
+    gap: Spacing.three,
   },
   count: {
     minWidth: 22,

@@ -1,6 +1,6 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import { OpeningCard } from '@/components/opening-card';
 import { StreakStrip } from '@/components/streak-strip';
@@ -8,6 +8,7 @@ import { Text } from '@/components/text';
 import {
   Button,
   Card,
+  Carousel,
   Empty,
   GlassButton,
   Group,
@@ -33,7 +34,7 @@ import { daysLeft, deadlineLabel, upcomingStarred } from '@/lib/tracker/openings
 import { openWebPage } from '@/lib/web-pages';
 
 /** How many starred openings Home lists before "See all". */
-const STARRED_ON_HOME = 3;
+const STARRED_ON_HOME = 8;
 
 function greeting(now: Date) {
   const hour = Number(now.toLocaleString('en-GB', { hour: 'numeric', hour12: false, timeZone: 'Europe/London' }));
@@ -57,6 +58,8 @@ export default function HomeScreen() {
   const stars = useStars();
   const { daily, streak, league, missing } = useDaily();
   const [refreshing, setRefreshing] = useState(false);
+  // Starred openings swipe sideways, a little of the next card showing, as in Music.
+  const cardWidth = Math.min(useWindowDimensions().width * 0.82, 420);
 
   useFocusEffect(
     useCallback(() => {
@@ -219,11 +222,13 @@ export default function HomeScreen() {
           action={<Button variant="secondary" label="Browse the tracker" onPress={() => router.navigate('/tracker')} />}
         />
       ) : (
-        <View style={styles.list}>
+        <Carousel itemWidth={cardWidth}>
           {upcoming.slice(0, STARRED_ON_HOME).map((opening) => (
-            <OpeningCard key={opening.id} opening={opening} now={now} />
+            <View key={opening.id} style={{ width: cardWidth }}>
+              <OpeningCard opening={opening} now={now} />
+            </View>
           ))}
-        </View>
+        </Carousel>
       )}
     </Screen>
   );
