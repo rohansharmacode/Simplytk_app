@@ -1,28 +1,13 @@
-# Opens one row of the More tab, screenshots it and its scrolled view, and goes back.
-# Env: LABEL (row text) and NAME (screenshot name).
+# Opens one screen by its simplytk:// link, screenshots it and its scrolled view, and goes back.
+# Env: LINK (app path without the leading slash) and NAME (screenshot name).
 appId: com.simplytk.app
 ---
-- tapOn:
-    point: 90%, 95%
-- scrollUntilVisible:
-    element:
-      text: '.*${LABEL}.*'
-    direction: DOWN
-    timeout: 15000
-    optional: true
-- tapOn:
-    text: '.*${LABEL}.*'
-    optional: true
+- openLink: simplytk://${LINK}
 - waitForAnimationToEnd:
-    timeout: 4000
-- extendedWaitUntil:
-    notVisible: 'Loading.*'
-    timeout: 8000
-    optional: true
+    timeout: 5000
 - takeScreenshot: ${NAME}
 - scroll
 - takeScreenshot: ${NAME}-scrolled
-- swipe:
-    start: 1%, 50%
-    end: 90%, 50%
+- tapOn:
+    point: 5%, 9%
 - waitForAnimationToEnd

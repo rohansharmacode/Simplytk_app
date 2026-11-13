@@ -1,2 +1,3 @@
 https://expo.dev/artifacts/eas/tqjr-C5eIwP4MYNl6D6O85unfDERgXGztbgNljnMGbA.tar.gz
 rerun 2026-11-13T20:38:56Z: full tour of every screen
+rerun 2026-11-13T21:08:35Z: open screens by link
