@@ -53,9 +53,11 @@ jobs:
           fi
           APP=$(find app -maxdepth 2 -name "*.app" | head -1)
           xcrun simctl list runtimes
-          # Maestro's iOS 26 driver drops the view hierarchy mid-tour (HTTP 500), so prefer an iOS 18 phone.
-          DEVICE=$(xcrun simctl list devices available | awk '/^-- iOS 18/{on=1;next} /^--/{on=0} on' | grep -E "iPhone 1[5-9] Pro \(" | head -1 | grep -oE "[0-9A-F-]{36}")
-          [ -n "$DEVICE" ] || DEVICE=$(xcrun simctl list devices available | grep -E "iPhone 1[5-9] Pro \(" | head -1 | grep -oE "[0-9A-F-]{36}")
+          # Maestro's driver dropped the view hierarchy (HTTP 500) on iOS 26.2, so use a phone on the
+          # newest iOS runtime the runner has, falling back to any iPhone Pro.
+          NEWEST=$(xcrun simctl list devices available | grep -oE "^-- iOS [0-9.]+" | sort -V | tail -1 || true)
+          DEVICE=$(xcrun simctl list devices available | awk -v h="$NEWEST" '$0==h" --"{on=1;next} /^--/{on=0} on' | grep -E "iPhone 1[5-9] Pro \(" | head -1 | grep -oE "[0-9A-F-]{36}" || true)
+          [ -n "$DEVICE" ] || DEVICE=$(xcrun simctl list devices available | grep -E "iPhone 1[5-9] Pro \(" | head -1 | grep -oE "[0-9A-F-]{36}" || true)
           [ -n "$DEVICE" ] || DEVICE=$(xcrun simctl list devices available | grep iPhone | head -1 | grep -oE "[0-9A-F-]{36}")
           xcrun simctl list devices available | grep "$DEVICE"
           xcrun simctl boot "$DEVICE"
