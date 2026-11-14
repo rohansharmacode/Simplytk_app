@@ -17,7 +17,7 @@ permissions:
 
 jobs:
   tour:
-    runs-on: macos-15
+    runs-on: macos-26
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
@@ -29,12 +29,14 @@ jobs:
       - name: Build the app for the simulator from this commit
         run: |
           if [ "$(head -1 .maestro/app-url.txt)" != "source" ]; then exit 0; fi
+          # SDK 58's Swift packages are built and tested with Xcode 27; Xcode 26.3's compiler rejects
+          # ExpoModulesJSI ("sending 'slot' risks causing data races"). Use the newest Xcode here.
+          ls -d /Applications/Xcode_*.app
+          export DEVELOPER_DIR="$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)/Contents/Developer"
+          echo "Building with $DEVELOPER_DIR"
           npm ci
           npx expo prebuild -p ios --no-install
           (cd ios && pod install)
-          # Expo's Swift packages need Swift 6.2, so compile with the newest Xcode on the runner.
-          export DEVELOPER_DIR="$(ls -d /Applications/Xcode_26*.app | sort -V | tail -1)/Contents/Developer"
-          echo "Building with $DEVELOPER_DIR"
           WORKSPACE=$(ls -d ios/*.xcworkspace | head -1)
           SCHEME=$(basename "$WORKSPACE" .xcworkspace)
           xcodebuild -workspace "$WORKSPACE" -scheme "$SCHEME" -configuration Release \
