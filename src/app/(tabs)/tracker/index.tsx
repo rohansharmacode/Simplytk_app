@@ -3,6 +3,7 @@ import { SymbolView } from 'expo-symbols';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   FlatList,
+  Keyboard,
   Platform,
   TextInput as NativeTextInput,
   Pressable,
@@ -72,7 +73,13 @@ export default function TrackerScreen() {
   const request = useRef(0);
   const now = useMemo(() => new Date(), [openings]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  useFocusEffect(hideSplash);
+  useFocusEffect(
+    useCallback(() => {
+      hideSplash();
+      // Leaving the tab puts the keyboard away rather than carrying it to the next screen.
+      return () => Keyboard.dismiss();
+    }, []),
+  );
 
   // A link to the pre-university tracker (More, or a simplytk.com link) picks the stage.
   const [linkedStage, setLinkedStage] = useState<string | undefined>(undefined);
