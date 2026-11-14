@@ -11,8 +11,11 @@ appId: com.simplytk.app
 - takeScreenshot: d01-home
 - scroll
 - takeScreenshot: d02-home-scrolled
+- swipe:
+    direction: DOWN
+- waitForAnimationToEnd
 - tapOn:
-    point: 30%, 95%
+    point: 33%, 95%
 - waitForAnimationToEnd
 - takeScreenshot: d03-tracker
 - tapOn:
@@ -20,11 +23,11 @@ appId: com.simplytk.app
 - waitForAnimationToEnd
 - takeScreenshot: d04-daily
 - tapOn:
-    point: 70%, 95%
+    point: 67%, 95%
 - waitForAnimationToEnd
 - takeScreenshot: d05-ranks
 - tapOn:
-    point: 90%, 95%
+    point: 84%, 95%
 - waitForAnimationToEnd
 - takeScreenshot: d06-more
 - runFlow:

@@ -21,6 +21,12 @@ and the body padding kept for it, because the native tab bar replaces it, and th
 site header (`header.sticky.top-0.z-50`), because the native navigation bar replaces it. If that markup
 changes, move the rule into the site's CSS so it keeps working:
 
+On iOS it also hides links to things for sale that the site still shows inside the app: links to
+`/spring-week-playbook`, `/efds-playbook` and `/pricing`, and links to `stripe.com` (the
+playbook cards and paid downloads on `/resources` show a price and skip `useNativeIosApp()`).
+The free edition link (`/spring-week-playbook/free`) stays. The site can fix this itself by
+checking `useNativeIosApp()` on `/resources`.
+
 ```css
 html.simplytk-native-app .mobile-tab-bar { display: none; }
 html.simplytk-native-app .site-header { display: none; }

@@ -18,7 +18,7 @@ permissions:
 jobs:
   tour:
     runs-on: macos-26
-    timeout-minutes: 90
+    timeout-minutes: 150
     steps:
       - uses: actions/checkout@v4
 
@@ -80,12 +80,13 @@ jobs:
           mkdir -p shots
           cd shots
           # Maestro's simulator driver sometimes fails to start the first time, so try twice.
-          # When the driver crashes Maestro can hang instead of exiting, so cap each attempt at 20 minutes.
-          run() { perl -e 'alarm shift; exec @ARGV' 1200 maestro test "$@"; }
-          run ../.maestro/tour.yaml || run ../.maestro/tour.yaml || run ../.maestro/tour.yaml || echo "The tour stopped early; see the log above."
+          # When the driver crashes Maestro can hang instead of exiting, so cap each attempt. A full
+          # tour takes about 25 minutes on an iOS 26 simulator.
+          run() { limit=$1; shift; perl -e 'alarm shift; exec @ARGV' "$limit" maestro test "$@"; }
+          run 2700 ../.maestro/tour.yaml || run 2700 ../.maestro/tour.yaml || echo "The tour stopped early; see the log above."
           # The main screens again in dark mode.
           xcrun simctl ui booted appearance dark
-          run ../.maestro/tour-dark.yaml || echo "The dark tour stopped early; see the log above."
+          run 900 ../.maestro/tour-dark.yaml || run 900 ../.maestro/tour-dark.yaml || echo "The dark tour stopped early; see the log above."
 
       - name: Push the screenshots to the screenshots branch
         if: always()

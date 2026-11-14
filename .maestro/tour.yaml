@@ -26,29 +26,38 @@ appId: com.simplytk.app
 - takeScreenshot: 03-home
 - scroll
 - takeScreenshot: 04-home-scrolled
+- swipe:
+    direction: DOWN
+- waitForAnimationToEnd
 - tapOn:
-    point: 30%, 95%
+    point: 33%, 95%
 - waitForAnimationToEnd
 - takeScreenshot: 05-tracker
 - scroll
 - takeScreenshot: 06-tracker-scrolled
+- swipe:
+    direction: DOWN
+- waitForAnimationToEnd
 - tapOn:
     point: 50%, 95%
 - waitForAnimationToEnd
 - takeScreenshot: 07-daily
 - tapOn:
-    point: 70%, 95%
+    point: 67%, 95%
 - waitForAnimationToEnd
 - takeScreenshot: 08-ranks
 - tapOn:
-    point: 90%, 95%
+    point: 84%, 95%
 - waitForAnimationToEnd
 - takeScreenshot: 09-more
 - scroll
 - takeScreenshot: 10-more-scrolled
+- swipe:
+    direction: DOWN
+- waitForAnimationToEnd
 # Tracker: open the first opening.
 - tapOn:
-    point: 30%, 95%
+    point: 33%, 95%
 - scrollUntilVisible:
     element:
       text: 'Search by firm'
@@ -66,13 +75,13 @@ appId: com.simplytk.app
 - waitForAnimationToEnd
 # Home: search and profile buttons.
 - tapOn:
-    point: 10%, 95%
+    point: 16%, 95%
 - tapOn:
     point: 81%, 9%
 - waitForAnimationToEnd
 - takeScreenshot: 13-home-search
 - tapOn:
-    point: 10%, 95%
+    point: 16%, 95%
 - tapOn:
     point: 92%, 9%
 - waitForAnimationToEnd
@@ -200,9 +209,9 @@ appId: com.simplytk.app
 # Tracker filters: closing this week, then the starred view. A second tap on the tab
 # scrolls it back to the top.
 - tapOn:
-    point: 30%, 95%
+    point: 33%, 95%
 - tapOn:
-    point: 30%, 95%
+    point: 33%, 95%
 - waitForAnimationToEnd
 - tapOn:
     point: 53%, 68%
