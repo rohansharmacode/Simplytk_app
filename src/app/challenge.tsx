@@ -39,6 +39,14 @@ type Phase =
   | { kind: 'unavailable'; reason: string; web: boolean }
   | { kind: 'playing'; sessionId: string; problems: DailyProblem[]; number: number }
   | { kind: 'submitting'; problems: DailyProblem[] }
+  | {
+      kind: 'unsaved';
+      reason: string;
+      sessionId: string;
+      problems: DailyProblem[];
+      number: number;
+      events: AnswerEvent[];
+    }
   | { kind: 'done'; result: DailyResult; problems: DailyProblem[]; number: number };
 
 /**
@@ -88,10 +96,14 @@ export default function ChallengeScreen() {
       setPhase({ kind: 'done', result, problems, number });
       void refreshDaily();
     } catch (error) {
+      // Keep the answers, so a dropped connection at the end doesn't cost the run.
       setPhase({
-        kind: 'unavailable',
-        web: false,
+        kind: 'unsaved',
         reason: `Your run could not be saved: ${error instanceof Error ? error.message : String(error)}`,
+        sessionId,
+        problems,
+        number,
+        events,
       });
     }
   }
@@ -120,6 +132,15 @@ export default function ChallengeScreen() {
                   }}
                 />
               ) : null}
+            </View>
+          ) : null}
+          {phase.kind === 'unsaved' ? (
+            <View style={styles.message}>
+              <Text style={[styles.messageText, { color: palette.text }]}>{phase.reason}</Text>
+              <Button
+                label="Try again"
+                onPress={() => void finish(phase.sessionId, phase.problems, phase.number, phase.events)}
+              />
             </View>
           ) : null}
           {phase.kind === 'done' ? <Finished result={phase.result} problems={phase.problems} number={phase.number} /> : null}
