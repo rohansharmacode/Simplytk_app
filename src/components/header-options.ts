@@ -26,7 +26,19 @@ export function headerOptions(palette: Palette, large: boolean): NativeStackNavi
   return {
     headerLargeTitleEnabled: large,
     headerTransparent: true,
-    ...(LIQUID_GLASS ? {} : { headerBlurEffect: 'systemChromeMaterial' as const }),
+    // On iOS 26 the default soft edge lets the bright hero cards show through the shrunken
+    // title, so text overlapped text (seen in the screenshot tour). The hard edge keeps the
+    // bar readable, with the same Liquid Glass material.
+    ...(LIQUID_GLASS
+      ? {
+          scrollEdgeEffects: {
+            top: 'hard' as const,
+            bottom: 'automatic' as const,
+            left: 'automatic' as const,
+            right: 'automatic' as const,
+          },
+        }
+      : { headerBlurEffect: 'systemChromeMaterial' as const }),
     headerShadowVisible: false,
     headerLargeTitleShadowVisible: false,
     headerLargeStyle: { backgroundColor: 'transparent' },
