@@ -10,6 +10,11 @@ appId: com.simplytk.app
     optional: true
 - waitForAnimationToEnd:
     timeout: 5000
+# Give web pages a few seconds to load (nothing ever shows this text).
+- extendedWaitUntil:
+    visible: 'wait-for-the-page-to-load'
+    timeout: 6000
+    optional: true
 - takeScreenshot: ${NAME}
 - scroll
 - takeScreenshot: ${NAME}-scrolled
