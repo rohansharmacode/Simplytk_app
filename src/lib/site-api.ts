@@ -1,5 +1,6 @@
 import { getSession } from '@/lib/session';
 import { SITE_ORIGIN } from '@/lib/site';
+import { supabase } from '@/lib/supabase';
 
 /**
  * The website's app endpoints (docs/app-api.md, and docs/native-app-api.md in the site's repo). They wrap the same server code the site's
@@ -15,8 +16,25 @@ export class SiteApiMissing extends Error {
   }
 }
 
+/**
+ * A current access token. Coming back to the app after an hour, screens ask for data before
+ * the auto-refresh has run, so an expired token is refreshed first rather than sent.
+ */
+async function accessToken(): Promise<string | undefined> {
+  const cached = getSession();
+  if (!cached) return undefined;
+  const expiresAt = (cached.expires_at ?? 0) * 1000;
+  if (expiresAt - Date.now() > 60_000) return cached.access_token;
+  try {
+    const { data } = await supabase.auth.getSession();
+    return data.session?.access_token ?? cached.access_token;
+  } catch {
+    return cached.access_token;
+  }
+}
+
 async function call<T>(method: 'GET' | 'POST' | 'DELETE', path: string, body?: unknown): Promise<T> {
-  const token = getSession()?.access_token;
+  const token = await accessToken();
   const response = await fetch(`${SITE_ORIGIN}${path}`, {
     method,
     headers: {

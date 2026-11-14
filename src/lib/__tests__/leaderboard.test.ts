@@ -2,6 +2,7 @@ import { leagueLine, ordinal, pinnedRow, playerBoard, timeLeft, universityBoard,
 import { withZone } from '../site-api';
 
 jest.mock('../session', () => ({ getSession: () => null }));
+jest.mock('../supabase', () => ({ supabase: { auth: { getSession: () => Promise.resolve({ data: { session: null } }) } } }));
 
 const entry = (rank: number, isYou = false) => ({ rank, username: `p${rank}`, isYou, university: null, score: 100 - rank });
 
