@@ -1,7 +1,8 @@
 # Runs .maestro/tour.yaml on an iPhone simulator and pushes a screenshot of every screen to
 # the `screenshots` branch, so the app's look can be checked without a phone.
 # It runs when .maestro/app-url.txt changes: put the URL of an EAS simulator build
-# (`eas build -p ios --profile simulator`) on its first line and push. Lines after the
+# (`eas build -p ios --profile simulator`) on its first line and push, or the word `source`
+# to build the app from this commit on the runner (free; no EAS build used). Lines after the
 # first are notes, so editing one reruns the tour on the same build.
 # Needs the repository secrets MAESTRO_TEST_EMAIL and MAESTRO_TEST_PASSWORD (a test account).
 name: Screenshot tour
@@ -17,15 +18,34 @@ permissions:
 jobs:
   tour:
     runs-on: macos-15
-    timeout-minutes: 30
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Build the app for the simulator from this commit
+        run: |
+          if [ "$(head -1 .maestro/app-url.txt)" != "source" ]; then exit 0; fi
+          npm ci
+          npx expo prebuild -p ios --no-install
+          (cd ios && pod install)
+          WORKSPACE=$(ls -d ios/*.xcworkspace | head -1)
+          SCHEME=$(basename "$WORKSPACE" .xcworkspace)
+          xcodebuild -workspace "$WORKSPACE" -scheme "$SCHEME" -configuration Release \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build CODE_SIGNING_ALLOWED=NO -quiet
+          mkdir -p app && cp -R build/Build/Products/Release-iphonesimulator/*.app app/
 
       - name: Start an iPhone simulator and install the app
         run: |
           APP_URL=$(head -1 .maestro/app-url.txt)
-          curl -fsSL -o app.tar.gz "$APP_URL"
-          mkdir app && tar -xzf app.tar.gz -C app
+          if [ "$APP_URL" != "source" ]; then
+            curl -fsSL -o app.tar.gz "$APP_URL"
+            mkdir app && tar -xzf app.tar.gz -C app
+          fi
           APP=$(find app -maxdepth 2 -name "*.app" | head -1)
           DEVICE=$(xcrun simctl list devices available | grep -E "iPhone 1[5-9] Pro \(" | head -1 | grep -oE "[0-9A-F-]{36}")
           [ -n "$DEVICE" ] || DEVICE=$(xcrun simctl list devices available | grep iPhone | head -1 | grep -oE "[0-9A-F-]{36}")

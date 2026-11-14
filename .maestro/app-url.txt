@@ -1,1 +1,2 @@
-https://expo.dev/artifacts/eas/xgxqoKd2rZuiKbrwQE1sM42MchfXSl1ZS37kSyRTqRw.tar.gz
+source
+# Built on the runner: the free EAS iOS builds for November are used up (2026-11-14).
