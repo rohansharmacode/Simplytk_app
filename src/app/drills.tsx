@@ -1,9 +1,10 @@
 import { router, useFocusEffect } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { Fragment } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Text } from '@/components/text';
+import { Screen, Title } from '@/components/ui';
 import { Radius, Spacing } from '@/constants/theme';
 import { usePalette } from '@/hooks/use-palette';
 import { DRILL_GROUPS, type Drill } from '@/lib/drills/catalogue';
@@ -38,18 +39,12 @@ export default function DrillsScreen() {
   const sections = [...DRILL_GROUPS, { title: 'More practice', drills: MORE_PRACTICE }];
 
   return (
-    <ScrollView
-      style={{ backgroundColor: palette.background }}
-      contentContainerStyle={[styles.content, { paddingTop: Spacing.four }]}
-      contentInsetAdjustmentBehavior="automatic">
-      <View style={styles.header}>
-        <Text style={[styles.title, { color: palette.text }]} accessibilityRole="header">
-          Drills
-        </Text>
-        <Text style={[styles.subtitle, { color: palette.textSecondary }]}>
-          The tests firms actually set, on repeat. Drills marked Play run right here in the app.
-        </Text>
-      </View>
+    <Screen>
+      <Title
+        eyebrow="Practice"
+        title="Drills"
+        subtitle="The tests firms actually set, on repeat. Drills marked Play run right here in the app."
+      />
 
       {sections.map((section) => (
         <View key={section.title} style={styles.section}>
@@ -88,27 +83,11 @@ export default function DrillsScreen() {
           </View>
         </View>
       ))}
-    </ScrollView>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  content: {
-    padding: Spacing.four,
-    paddingBottom: Spacing.six,
-    gap: Spacing.five,
-  },
-  header: {
-    gap: Spacing.one,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '700',
-  },
-  subtitle: {
-    fontSize: 15,
-    lineHeight: 20,
-  },
   section: {
     gap: Spacing.two,
   },

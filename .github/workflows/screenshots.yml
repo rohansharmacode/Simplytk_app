@@ -49,6 +49,9 @@ jobs:
           cd shots
           # Maestro's simulator driver sometimes fails to start the first time, so try twice.
           maestro test ../.maestro/tour.yaml || maestro test ../.maestro/tour.yaml || echo "The tour stopped early; see the log above."
+          # The main screens again in dark mode.
+          xcrun simctl ui booted appearance dark
+          maestro test ../.maestro/tour-dark.yaml || echo "The dark tour stopped early; see the log above."
           # Maestro saves screenshots in its own test folder, failure shots included.
           find "$HOME/.maestro/tests" -name "*.png" -exec cp {} . \;
           ls -la

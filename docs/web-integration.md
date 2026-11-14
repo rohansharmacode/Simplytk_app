@@ -17,11 +17,13 @@ Every page loaded in the app has:
 - `?source=app` on the first URL each tab loads, matching the PWA's `?source=pwa`.
 
 The app already hides the site's mobile tab bar (`nav[aria-label="Primary"].fixed.bottom-0`)
-and the body padding kept for it, because the native tab bar replaces it. If that markup
+and the body padding kept for it, because the native tab bar replaces it, and the sticky
+site header (`header.sticky.top-0.z-50`), because the native navigation bar replaces it. If that markup
 changes, move the rule into the site's CSS so it keeps working:
 
 ```css
 html.simplytk-native-app .mobile-tab-bar { display: none; }
+html.simplytk-native-app .site-header { display: none; }
 html.simplytk-native-app body { padding-bottom: 0; }
 ```
 

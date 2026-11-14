@@ -172,6 +172,46 @@ appId: com.simplytk.app
     env:
       LINK: 'dashboard/settings'
       NAME: 52-settings
+- runFlow:
+    file: visit.yaml
+    env:
+      LINK: 'play/mental-maths'
+      NAME: 45-play-mental-maths
+- runFlow:
+    file: visit.yaml
+    env:
+      LINK: 'play/fast-fractions'
+      NAME: 46-play-fast-fractions
+# The first interview course module.
+- openLink: simplytk://course
+- waitForAnimationToEnd
+- tapOn:
+    text: 'Open'
+    optional: true
+- waitForAnimationToEnd
+- tapOn:
+    point: 50%, 85%
+- waitForAnimationToEnd
+- takeScreenshot: 47-course-module
+- scroll
+- takeScreenshot: 47-course-module-scrolled
+- tapOn:
+    point: 5%, 9%
+# Tracker filters: closing this week, then the starred view. A second tap on the tab
+# scrolls it back to the top.
+- tapOn:
+    point: 30%, 95%
+- tapOn:
+    point: 30%, 95%
+- waitForAnimationToEnd
+- tapOn:
+    point: 53%, 68%
+- waitForAnimationToEnd
+- takeScreenshot: 15-tracker-closing-week
+- tapOn:
+    point: 72%, 47%
+- waitForAnimationToEnd
+- takeScreenshot: 16-tracker-starred
 # Pre-uni tracker, then the other leaderboards.
 - openLink: simplytk://tracker?stage=preuni
 - waitForAnimationToEnd

@@ -49,7 +49,7 @@ export default function OaPrepScreen() {
 
   return (
     <Screen refreshing={refreshing} onRefresh={refresh}>
-      <Title eyebrow="Practice" title="Online assessment prep" />
+      <Title eyebrow="Online assessment prep" title="OA prep" />
 
       <Hero>
         <Kicker color={onHero.secondary}>What the firms send</Kicker>
