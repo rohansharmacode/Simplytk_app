@@ -2,7 +2,7 @@ import * as Clipboard from 'expo-clipboard';
 import Constants from 'expo-constants';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useImperativeHandle, useRef, useState, type ComponentRef, type Ref } from 'react';
-import { AppState, BackHandler, Platform, StyleSheet, View, type HostInstance } from 'react-native';
+import { ActivityIndicator, AppState, BackHandler, Platform, StyleSheet, View, type HostInstance } from 'react-native';
 import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
 import type {
@@ -71,6 +71,8 @@ export function SiteWebView({ initialPath, insetTop, onTitleChange, onUrlChange,
   const [instance, setInstance] = useState(0);
   const [progress, setProgress] = useState(0);
   const [failed, setFailed] = useState(false);
+  // Until the first page has drawn, a spinner instead of a blank white screen.
+  const [painted, setPainted] = useState(false);
 
   const currentUrl = useRef(source.uri);
   const failedUrl = useRef<string | null>(null);
@@ -86,6 +88,7 @@ export function SiteWebView({ initialPath, insetTop, onTitleChange, onUrlChange,
     setInstance((value) => value + 1);
     setFailed(false);
     setProgress(0);
+    setPainted(false);
   }, []);
 
   useImperativeHandle(
@@ -203,6 +206,7 @@ export function SiteWebView({ initialPath, insetTop, onTitleChange, onUrlChange,
   }, []);
 
   const onLoadEnd = useCallback(() => {
+    setPainted(true);
     hideSplash();
     markFirstPageLoaded();
   }, []);
@@ -261,6 +265,11 @@ export function SiteWebView({ initialPath, insetTop, onTitleChange, onUrlChange,
             style={[styles.progress, { width: `${progress * 100}%`, backgroundColor: palette.tint }]}
           />
         )}
+        {!painted && !failed && (
+          <View pointerEvents="none" style={[styles.cover, { backgroundColor: palette.background }]}>
+            <ActivityIndicator color={palette.textSecondary} />
+          </View>
+        )}
         {failed && <LoadError onRetry={retry} />}
       </View>
     </SafeAreaView>
@@ -270,6 +279,11 @@ export function SiteWebView({ initialPath, insetTop, onTitleChange, onUrlChange,
 const styles = StyleSheet.create({
   fill: {
     flex: 1,
+  },
+  cover: {
+    ...StyleSheet.absoluteFill,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   progress: {
     position: 'absolute',

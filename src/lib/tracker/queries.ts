@@ -43,8 +43,9 @@ export async function fetchOpenings(filters: Filters, page: number, now = new Da
   }
   const firm = firmSearchTerm(filters.firm);
   if (firm) query = query.ilike('companies.name', `%${firm}%`);
-  // Deadlines are often a bare date, so one that passed less than a day ago still shows.
-  const since = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
+  // Deadlines are often a bare date (midnight), so anything due from the start of today shows;
+  // yesterday's have closed.
+  const since = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
   const cutoff = deadlineCutoff(filters.deadline, now);
   if (cutoff) {
     query = query.not('deadline', 'is', null).gte('deadline', since).lte('deadline', cutoff.toISOString());

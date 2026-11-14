@@ -39,7 +39,8 @@ export default function CourseModuleScreen() {
 
   return (
     <Screen refreshing={refreshing} onRefresh={refresh}>
-      <Stack.Screen options={{ title: module?.title ?? 'Module' }} />
+      {/* The module's title is the page's own heading; the bar stays clear, as on an album page in Music. */}
+      <Stack.Screen options={{ title: '' }} />
       <LoadState
         loaded={!!module}
         error={error}

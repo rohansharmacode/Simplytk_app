@@ -142,7 +142,7 @@ export default function HomeScreen() {
           stats={[
             { value: streak ? String(streak.current) : '–', label: 'Day streak' },
             { value: streak ? String(streak.best) : '–', label: 'Best' },
-            { value: league ? `#${league.you.rank}` : '–', label: league ? `${TIER_LABELS[league.tier]} league` : 'League' },
+            { value: league ? `#${league.you.rank}` : '–', label: league ? TIER_LABELS[league.tier] : 'League' },
             { value: stars.list ? String(upcoming.length) : '–', label: 'Starred' },
           ]}
         />

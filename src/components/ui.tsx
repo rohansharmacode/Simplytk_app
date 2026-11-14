@@ -806,11 +806,13 @@ const styles = StyleSheet.create({
   },
   heroStats: {
     flexDirection: 'row',
+    gap: Spacing.three,
     borderTopWidth: 1,
     paddingTop: Spacing.three,
   },
   heroStat: {
     flex: 1,
+    minWidth: 0,
     gap: 1,
   },
   heroStatValue: {
