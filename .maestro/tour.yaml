@@ -1,0 +1,245 @@
+# Walks through the app on an iOS simulator and takes a screenshot of each screen, so the
+# look can be checked without a phone. Run by .github/workflows/screenshots.yml.
+# MAESTRO_TEST_EMAIL and MAESTRO_TEST_PASSWORD are GitHub repository secrets.
+appId: com.simplytk.app
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: 'Sign in to simplytk'
+    timeout: 30000
+- takeScreenshot: 01-sign-in
+- tapOn: 'Use email or phone'
+- takeScreenshot: 02-sign-in-email
+- tapOn:
+    text: 'Email'
+    index: 1
+- inputText: ${MAESTRO_TEST_EMAIL}
+- tapOn: 'Password'
+- inputText: ${MAESTRO_TEST_PASSWORD}
+- tapOn: 'Sign in to simplytk'
+- tapOn: 'Sign in'
+- extendedWaitUntil:
+    visible: 'Today'
+    timeout: 30000
+- waitForAnimationToEnd
+- takeScreenshot: 03-home
+- scroll
+- takeScreenshot: 04-home-scrolled
+- swipe:
+    direction: DOWN
+- waitForAnimationToEnd
+- tapOn:
+    point: 33%, 95%
+- waitForAnimationToEnd
+- takeScreenshot: 05-tracker
+- scroll
+- takeScreenshot: 06-tracker-scrolled
+- swipe:
+    direction: DOWN
+- waitForAnimationToEnd
+- tapOn:
+    point: 50%, 95%
+- waitForAnimationToEnd
+- takeScreenshot: 07-daily
+- tapOn:
+    point: 67%, 95%
+- waitForAnimationToEnd
+- takeScreenshot: 08-ranks
+- tapOn:
+    point: 84%, 95%
+- waitForAnimationToEnd
+- takeScreenshot: 09-more
+- scroll
+- takeScreenshot: 10-more-scrolled
+- swipe:
+    direction: DOWN
+- waitForAnimationToEnd
+# Tracker: open the first opening.
+- tapOn:
+    point: 33%, 95%
+- scrollUntilVisible:
+    element:
+      text: 'Search by firm'
+    direction: UP
+    optional: true
+- tapOn:
+    point: 50%, 80%
+    optional: true
+- waitForAnimationToEnd
+- takeScreenshot: 11-opening
+- scroll
+- takeScreenshot: 12-opening-scrolled
+- tapOn:
+    point: 5%, 9%
+- waitForAnimationToEnd
+# Home: search and profile buttons.
+- tapOn:
+    point: 16%, 95%
+- tapOn:
+    point: 81%, 9%
+- waitForAnimationToEnd
+- takeScreenshot: 13-home-search
+- tapOn:
+    point: 16%, 95%
+- tapOn:
+    point: 92%, 9%
+- waitForAnimationToEnd
+- takeScreenshot: 14-home-profile
+- runFlow:
+    file: visit.yaml
+    env:
+      LINK: 'applications'
+      NAME: 20-applications
+- runFlow:
+    file: visit.yaml
+    env:
+      LINK: 'opening-soon'
+      NAME: 21-opening-soon
+- runFlow:
+    file: visit.yaml
+    env:
+      LINK: 'live'
+      NAME: 22-live-feed
+- runFlow:
+    file: visit.yaml
+    env:
+      LINK: 'opportunities'
+      NAME: 23-opportunities
+- runFlow:
+    file: visit.yaml
+    env:
+      LINK: 'submit-opening'
+      NAME: 25-submit
+- runFlow:
+    file: visit.yaml
+    env:
+      LINK: 'cv-rater'
+      NAME: 30-cv-rater
+- runFlow:
+    file: visit.yaml
+    env:
+      LINK: 'cover-letter'
+      NAME: 31-cover-letter
+- runFlow:
+    file: visit.yaml
+    env:
+      LINK: 'interview-prep'
+      NAME: 32-firm-prep
+- runFlow:
+    file: visit.yaml
+    env:
+      LINK: 'mock-interview'
+      NAME: 33-mock-interview
+- runFlow:
+    file: visit.yaml
+    env:
+      LINK: 'ps-builder'
+      NAME: 34-ps-builder
+- runFlow:
+    file: visit.yaml
+    env:
+      LINK: 'study-coach'
+      NAME: 35-study-coach
+- runFlow:
+    file: visit.yaml
+    env:
+      LINK: 'drills'
+      NAME: 40-drills
+- runFlow:
+    file: visit.yaml
+    env:
+      LINK: 'progress'
+      NAME: 41-progress
+- runFlow:
+    file: visit.yaml
+    env:
+      LINK: 'duels'
+      NAME: 42-duels
+- runFlow:
+    file: visit.yaml
+    env:
+      LINK: 'oa-prep'
+      NAME: 43-oa-prep
+- runFlow:
+    file: visit.yaml
+    env:
+      LINK: 'course'
+      NAME: 44-course
+- runFlow:
+    file: visit.yaml
+    env:
+      LINK: 'spring-week-playbook'
+      NAME: 50-playbook
+- runFlow:
+    file: visit.yaml
+    env:
+      LINK: 'resources'
+      NAME: 51-resources
+- runFlow:
+    file: visit.yaml
+    env:
+      LINK: 'dashboard/settings'
+      NAME: 52-settings
+- runFlow:
+    file: visit.yaml
+    env:
+      LINK: 'play/mental-maths'
+      NAME: 45-play-mental-maths
+- runFlow:
+    file: visit.yaml
+    env:
+      LINK: 'play/fast-fractions'
+      NAME: 46-play-fast-fractions
+# The first interview course module.
+- openLink: simplytk://course
+- waitForAnimationToEnd
+- tapOn:
+    text: 'Open'
+    optional: true
+- waitForAnimationToEnd
+- tapOn:
+    point: 50%, 85%
+- waitForAnimationToEnd
+- takeScreenshot: 47-course-module
+- scroll
+- takeScreenshot: 47-course-module-scrolled
+- tapOn:
+    point: 5%, 9%
+# Tracker filters: closing this week, then the starred view. A second tap on the tab
+# scrolls it back to the top.
+- tapOn:
+    point: 33%, 95%
+- tapOn:
+    point: 33%, 95%
+- waitForAnimationToEnd
+- tapOn:
+    point: 53%, 68%
+- waitForAnimationToEnd
+- takeScreenshot: 15-tracker-closing-week
+- tapOn:
+    point: 72%, 47%
+- waitForAnimationToEnd
+- takeScreenshot: 16-tracker-starred
+# Pre-uni tracker, then the other leaderboards.
+- openLink: simplytk://tracker?stage=preuni
+- waitForAnimationToEnd
+- tapOn:
+    text: 'Open'
+    optional: true
+- waitForAnimationToEnd
+- takeScreenshot: 24-preuni
+- openLink: simplytk://ranks
+- waitForAnimationToEnd
+- tapOn:
+    text: 'Open'
+    optional: true
+- waitForAnimationToEnd
+- tapOn:
+    point: 80%, 25%
+- waitForAnimationToEnd
+- takeScreenshot: 60-ranks-league
+- tapOn:
+    point: 50%, 25%
+- waitForAnimationToEnd
+- takeScreenshot: 61-ranks-unis

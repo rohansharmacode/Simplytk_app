@@ -156,6 +156,22 @@ describe('bridgeScript: site state', () => {
   });
 });
 
+describe('bridgeScript: purchases on iOS', () => {
+  const body =
+    '<a id="buy" href="/spring-week-playbook">Get the playbook</a>' +
+    '<a id="free" href="/spring-week-playbook/free">Read the free edition</a>' +
+    '<a id="stripe" href="https://buy.stripe.com/abc">Buy</a>';
+
+  it('hides links to paid products and checkouts, keeping free editions', async () => {
+    const page = await openPage({ body });
+    const display = (id: string) =>
+      page.window.getComputedStyle(page.window.document.getElementById(id)!).display;
+    expect(display('buy')).toBe('none');
+    expect(display('stripe')).toBe('none');
+    expect(display('free')).not.toBe('none');
+  });
+});
+
 describe("bridgeScript: the site's own tab bar", () => {
   const nav = '<nav aria-label="Primary" class="fixed inset-x-0 bottom-0 md:hidden"></nav>';
 

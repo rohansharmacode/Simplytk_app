@@ -1,6 +1,6 @@
 import { useIsFocused } from 'expo-router';
 import { useEffect, useState, type RefObject } from 'react';
-import { Keyboard, Platform, type View } from 'react-native';
+import { Keyboard, Platform, type HostInstance } from 'react-native';
 
 /**
  * How far the Android keyboard overlaps `ref`, to pad it by. Edge-to-edge apps aren't
@@ -8,7 +8,7 @@ import { Keyboard, Platform, type View } from 'react-native';
  * field being typed in can sit behind the keyboard. Measuring the actual overlap keeps it
  * right whether or not the window was resized. iOS WebViews handle the keyboard themselves.
  */
-export function useKeyboardOverlap(ref: RefObject<View | null>): number {
+export function useKeyboardOverlap(ref: RefObject<HostInstance | null>): number {
   const focused = useIsFocused();
   const [overlap, setOverlap] = useState(0);
 

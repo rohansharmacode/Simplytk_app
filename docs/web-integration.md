@@ -1,8 +1,9 @@
 # simplytk.com ↔ app integration
 
-The app shows simplytk.com inside native tabs. Nothing on the website has to change for
-the app to work, but four small additions on the web side turn on the parts that need a
-server: universal links, push alerts, and App Store compliance.
+The app's main screens are native and talk to the website's backend: Supabase directly for
+sign-in, openings and stars, and the routes in [app-api.md](app-api.md) for the daily
+challenge, leaderboards, league and push tokens. Everything else on the site opens in a
+web view. This page covers those web views, push, universal links and App Store review.
 
 ## 1. Detecting the app
 
@@ -10,15 +11,25 @@ Every page loaded in the app has:
 
 - `window.SimplytkNative`, which is `{ platform: 'ios' | 'android', appVersion, requestPushToken(), share() }`.
 - The classes `simplytk-native-app` and `simplytk-native-ios` or `simplytk-native-android` on `<html>`.
-- `simplytk-app/<version>` at the end of the user agent, for server-side analytics.
+- `simplytk-app/<version>` at the end of the user agent, for server-side analytics. On iOS it is
+  followed by `simplytk-ios-app`, the Capacitor app's token, so the site hides every purchase
+  (`useNativeIosApp()`) and its checkout functions refuse one (`isNativeIosRequest()`).
 - `?source=app` on the first URL each tab loads, matching the PWA's `?source=pwa`.
 
 The app already hides the site's mobile tab bar (`nav[aria-label="Primary"].fixed.bottom-0`)
-and the body padding kept for it, because the native tab bar replaces it. If that markup
+and the body padding kept for it, because the native tab bar replaces it, and the sticky
+site header (`header.sticky.top-0.z-50`), because the native navigation bar replaces it. If that markup
 changes, move the rule into the site's CSS so it keeps working:
+
+On iOS it also hides links to things for sale that the site still shows inside the app: links to
+`/spring-week-playbook`, `/efds-playbook` and `/pricing`, and links to `stripe.com` (the
+playbook cards and paid downloads on `/resources` show a price and skip `useNativeIosApp()`).
+The free edition link (`/spring-week-playbook/free`) stays. The site can fix this itself by
+checking `useNativeIosApp()` on `/resources`.
 
 ```css
 html.simplytk-native-app .mobile-tab-bar { display: none; }
+html.simplytk-native-app .site-header { display: none; }
 html.simplytk-native-app body { padding-bottom: 0; }
 ```
 
@@ -29,50 +40,28 @@ system clipboard if the WebView refuses it. Neither needs changes on the website
 
 ## 2. Push alerts
 
-Alerts for new openings and deadlines are the main reason to install the app. The app
-handles permission, tokens and opening the right page when a notification is tapped. The
-website stores tokens and sends the pushes.
+Alerts for starred openings are the main reason to install the app. The app asks for
+permission on the first star, registers its Expo push token with `POST /api/app/push-token`
+after every sign-in, and removes it on sign-out. The website stores tokens and sends the
+pushes through the [Expo push API](https://docs.expo.dev/push-notifications/sending-notifications/).
+[app-api.md](app-api.md#notifications) has the details.
 
-**Ask for a token** wherever a student turns on alerts:
+The notification payload's `data`:
 
-```ts
-if (window.SimplytkNative) {
-  const result = await window.SimplytkNative.requestPushToken();
-  // { status: 'granted', token: 'ExponentPushToken[…]' } | { status: 'denied' }
-  // | { status: 'unavailable', reason }
-  if (result.status === 'granted') {
-    await supabase.from('push_tokens').upsert({
-      user_id: user.id,
-      token: result.token,
-      platform: window.SimplytkNative.platform,
-    });
-  }
-}
-```
+- `jobId`: the opening an alert is about. Tapping opens it in the app with its apply link.
+- `url`: a simplytk.com URL or path, used when there is no `jobId`. `/internship-tracker`
+  opens the Tracker, `/openings/<slug>` the opening, `/daily` the Daily tab,
+  `/oa-leaderboard` and `/league` the Ranks tab, `/dashboard` Home,
+  `/dashboard/applications` My applications, `/pre-uni-tracker` the Tracker's pre-uni view,
+  `/expected-openings` Opening soon, `/1v1` and `/1v1/<code>` the 1v1 screens,
+  `/interview-course` the course, and `/live`, `/opportunities`, `/progress`, `/oa-prep`,
+  `/cv-rater`, `/cover-letter`, `/interview-prep`, `/mock-interview`, `/ps-builder` and
+  `/study-coach` their own screens. Native drills open their drill, and any other page opens in a web view. A link to another site opens the Tracker.
 
-The OS permission prompt appears the first time this is called, so call it from a button
-press ("Turn on alerts"), not on page load.
-
-**Send** from the server with the [Expo push API](https://docs.expo.dev/push-notifications/sending-notifications/).
-Put the page to open in `data.url`:
-
-```ts
-await fetch('https://exp.host/--/api/v2/push/send', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    to: token,
-    title: 'Goldman Sachs Spring Week is open',
-    body: 'Applications close 30 November.',
-    data: { url: 'https://simplytk.com/companies/goldman-sachs' },
-  }),
-});
-```
-
-Tracker pages (`/internship-tracker`, `/companies/…`, `/live`, `/expected-openings`) open
-in the Tracker tab, and `/dashboard/…` opens in Home. Drills the app plays natively
-(`/mental-maths`, `/fast-fractions`) open the native drill. Any other page opens on top of
-the tabs. Remove a token when Expo's push receipt reports `DeviceNotRegistered`.
+Pages in web views can still ask for a token with
+`window.SimplytkNative.requestPushToken()`, which resolves to
+`{ status: 'granted', token: 'ExponentPushToken[…]' }`, `{ status: 'denied' }` or
+`{ status: 'unavailable', reason }`.
 
 ## 3. Universal links
 

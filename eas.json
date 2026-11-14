@@ -12,9 +12,19 @@
     },
     "production": {
       "autoIncrement": true
+    },
+    "simulator": {
+      "ios": {
+        "simulator": true
+      }
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "ios": {
+        "ascAppId": "6833674878",
+        "appleTeamId": "B379LUCNJ6"
+      }
+    }
   }
 }

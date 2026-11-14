@@ -1,8 +1,8 @@
 import * as Clipboard from 'expo-clipboard';
 import Constants from 'expo-constants';
 import { useFocusEffect } from 'expo-router';
-import { useCallback, useEffect, useImperativeHandle, useRef, useState, type Ref } from 'react';
-import { AppState, BackHandler, Platform, StyleSheet, View } from 'react-native';
+import { useCallback, useEffect, useImperativeHandle, useRef, useState, type ComponentRef, type Ref } from 'react';
+import { ActivityIndicator, AppState, BackHandler, Platform, StyleSheet, View, type HostInstance } from 'react-native';
 import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
 import type {
@@ -17,24 +17,11 @@ import { LoadError } from '@/components/load-error';
 import { useKeyboardOverlap } from '@/hooks/use-keyboard-overlap';
 import { usePalette } from '@/hooks/use-palette';
 import { getSiteState, markFirstPageLoaded, updateSiteState } from '@/lib/app-state';
-import {
-  bridgeScript,
-  navigateScript,
-  parseBridgeMessage,
-  replyScript,
-  scrollToTopOrGoScript,
-} from '@/lib/bridge';
+import { bridgeScript, navigateScript, parseBridgeMessage, replyScript, scrollToTopOrGoScript } from '@/lib/bridge';
 import { shareFile } from '@/lib/files';
 import { openOutside, shareLink } from '@/lib/open';
 import { requestPushToken } from '@/lib/push';
-import {
-  classifyUrl,
-  cleanTitle,
-  isIgnorableLoadError,
-  isSiteUrl,
-  SITE_HOSTS,
-  siteUrl,
-} from '@/lib/site';
+import { classifyUrl, cleanTitle, isIgnorableLoadError, isSiteUrl, SITE_HOSTS, siteUrl } from '@/lib/site';
 import { hideSplash } from '@/lib/splash';
 
 const APP_VERSION = Constants.expoConfig?.version ?? '1.0.0';
@@ -44,6 +31,13 @@ const BRIDGE = bridgeScript({
   appVersion: APP_VERSION,
   siteHosts: SITE_HOSTS,
 });
+
+/**
+ * Appended to the web view's user agent. On iOS it also carries the token the site already
+ * uses for its Capacitor app, so simplytk.com hides every purchase, as the App Store requires.
+ */
+const USER_AGENT =
+  Platform.OS === 'ios' ? `simplytk-app/${APP_VERSION} simplytk-ios-app` : `simplytk-app/${APP_VERSION}`;
 
 export type SiteWebViewHandle = {
   /** Show a site path, e.g. from a deep link or notification. */
@@ -68,8 +62,8 @@ type Props = {
  */
 export function SiteWebView({ initialPath, insetTop, onTitleChange, onUrlChange, ref }: Props) {
   const palette = usePalette();
-  const webRef = useRef<WebView>(null);
-  const containerRef = useRef<View>(null);
+  const webRef = useRef<ComponentRef<typeof WebView>>(null);
+  const containerRef = useRef<HostInstance>(null);
   const keyboardOverlap = useKeyboardOverlap(containerRef);
 
   const [source, setSource] = useState(() => ({ uri: siteUrl(initialPath) }));
@@ -77,6 +71,8 @@ export function SiteWebView({ initialPath, insetTop, onTitleChange, onUrlChange,
   const [instance, setInstance] = useState(0);
   const [progress, setProgress] = useState(0);
   const [failed, setFailed] = useState(false);
+  // Until the first page has drawn, a spinner instead of a blank white screen.
+  const [painted, setPainted] = useState(false);
 
   const currentUrl = useRef(source.uri);
   const failedUrl = useRef<string | null>(null);
@@ -92,6 +88,7 @@ export function SiteWebView({ initialPath, insetTop, onTitleChange, onUrlChange,
     setInstance((value) => value + 1);
     setFailed(false);
     setProgress(0);
+    setPainted(false);
   }, []);
 
   useImperativeHandle(
@@ -209,6 +206,7 @@ export function SiteWebView({ initialPath, insetTop, onTitleChange, onUrlChange,
   }, []);
 
   const onLoadEnd = useCallback(() => {
+    setPainted(true);
     hideSplash();
     markFirstPageLoaded();
   }, []);
@@ -252,7 +250,7 @@ export function SiteWebView({ initialPath, insetTop, onTitleChange, onUrlChange,
           onError={onError}
           onContentProcessDidTerminate={() => webRef.current?.reload()}
           onRenderProcessGone={() => remount(currentUrl.current)}
-          applicationNameForUserAgent={`simplytk-app/${APP_VERSION}`}
+          applicationNameForUserAgent={USER_AGENT}
           domStorageEnabled
           allowsBackForwardNavigationGestures
           pullToRefreshEnabled
@@ -267,6 +265,11 @@ export function SiteWebView({ initialPath, insetTop, onTitleChange, onUrlChange,
             style={[styles.progress, { width: `${progress * 100}%`, backgroundColor: palette.tint }]}
           />
         )}
+        {!painted && !failed && (
+          <View pointerEvents="none" style={[styles.cover, { backgroundColor: palette.background }]}>
+            <ActivityIndicator color={palette.textSecondary} />
+          </View>
+        )}
         {failed && <LoadError onRetry={retry} />}
       </View>
     </SafeAreaView>
@@ -276,6 +279,11 @@ export function SiteWebView({ initialPath, insetTop, onTitleChange, onUrlChange,
 const styles = StyleSheet.create({
   fill: {
     flex: 1,
+  },
+  cover: {
+    ...StyleSheet.absoluteFill,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   progress: {
     position: 'absolute',

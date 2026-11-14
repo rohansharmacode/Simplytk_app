@@ -1,0 +1,52 @@
+# The main screens again in dark mode. The workflow switches the simulator to dark first;
+# the app is still signed in from tour.yaml.
+appId: com.simplytk.app
+---
+- launchApp:
+    stopApp: true
+- extendedWaitUntil:
+    visible: 'Today'
+    timeout: 30000
+- waitForAnimationToEnd
+- takeScreenshot: d01-home
+- scroll
+- takeScreenshot: d02-home-scrolled
+- swipe:
+    direction: DOWN
+- waitForAnimationToEnd
+- tapOn:
+    point: 33%, 95%
+- waitForAnimationToEnd
+- takeScreenshot: d03-tracker
+- tapOn:
+    point: 50%, 95%
+- waitForAnimationToEnd
+- takeScreenshot: d04-daily
+- tapOn:
+    point: 67%, 95%
+- waitForAnimationToEnd
+- takeScreenshot: d05-ranks
+- tapOn:
+    point: 84%, 95%
+- waitForAnimationToEnd
+- takeScreenshot: d06-more
+- runFlow:
+    file: visit.yaml
+    env:
+      LINK: 'cv-rater'
+      NAME: d07-cv-rater
+- runFlow:
+    file: visit.yaml
+    env:
+      LINK: 'drills'
+      NAME: d08-drills
+- runFlow:
+    file: visit.yaml
+    env:
+      LINK: 'opening-soon'
+      NAME: d09-opening-soon
+- runFlow:
+    file: visit.yaml
+    env:
+      LINK: 'resources'
+      NAME: d10-resources

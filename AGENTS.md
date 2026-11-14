@@ -2,17 +2,25 @@ This is an Expo/React Native mobile application. Prioritize mobile-first pattern
 
 ## This project
 
-The simplytk app is moving from hosting https://simplytk.com in WebViews to native screens.
-Home, Tracker and Progress are still WebViews; the Drills tab, the More menu and the first
-drills are native. README.md explains the structure. Before changing things, know these rules:
+The simplytk app is native where students spend their time (Home, Tracker, Daily, Ranks)
+and opens the rest of https://simplytk.com in web views from the More tab. It uses the
+website's backend: its Supabase project directly, and the `/api/app/*` routes in
+docs/app-api.md. The website's source is github.com/txnujk09/simplytk-mentor-hub, where
+`claude/*` PRs auto-merge to production once CI passes, so never open one there without
+the owner's go-ahead. README.md explains the structure. Before changing things, know these rules:
 
 - Pure logic lives in `src/lib` and has unit tests in `src/lib/__tests__`. Keep it that way:
   link classification (`site.ts`), deep-link mapping (`routes.ts`), the injected bridge
-  script (`bridge.ts`) and the drills' catalogue and question generators (`drills/`).
+  script (`bridge.ts`), the drills' catalogue and question generators (`drills/`), the
+  tracker's filters and deadlines (`tracker/openings.ts`), the daily challenge's marking and
+  keypad (`daily/answers.ts`), leaderboard wording (`leaderboard.ts`), phone sign-in's
+  number parsing and error wording (`phone.ts`), reading Google sign-in's return (`google.ts`),
+  1v1 wording (`duels.ts`), the interview course's bands (`course.ts`) and the AI tools'
+  allowance lines, timers and counts (`ai-tools.ts`).
 - The bridge script is a string run inside web pages. Write it in ES5-style JavaScript and
   test it through `bridge.test.ts`, which executes it in a sandbox.
-- `docs/web-integration.md` is the contract with the website. Update it when the bridge,
-  the tab-to-path mapping or the notification payload changes.
+- `docs/web-integration.md` and `docs/app-api.md` are the contract with the website. Update
+  them when the bridge, the link mapping, the notification payload or an endpoint changes.
 
 ## Expo has changed — do not trust your training data
 

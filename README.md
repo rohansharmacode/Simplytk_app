@@ -4,58 +4,61 @@ The mobile app for [simplytk.com](https://simplytk.com): the live UK internship 
 week tracker, AI CV rater, aptitude drills and mentoring, with native tabs, push alerts,
 deep links and a share sheet.
 
-It is an [Expo](https://expo.dev) (React Native) app on its way from wrapping the site to
-being fully native. Today the Home, Tracker and Progress tabs host simplytk.com in a
-WebView, so every feature of the site is in the app, and site deploys reach the app
-without an app update. The Drills tab and the More menu are native, and so are the first
-drills (Mental Maths and Fast Fractions). Native code also handles the tab bar,
-notifications, links into the app, sharing, and offline states.
+It is an [Expo](https://expo.dev) (React Native) app. Version one is native where students
+spend their time: Home, the tracker with stars and alerts, the daily challenge and the
+leaderboards. Everything else on the site (CV tools, interview prep, guides, settings)
+opens in an in-app web view from the More tab.
 
-Next to go native: the tracker and your applications, then the AI tools. Those need a
-stable API on simplytk.com (or access to its Supabase project) to read and write data;
-the site's own server functions change on every deploy.
+It talks to the same backend as the website, so an account, a star, a streak or a score is
+the same in both places:
+
+- **Sign-in** is Supabase Auth on the website's project: email and password, a texted code,
+  Google, or Sign in with Apple. As on the website, a code to a new number or a first Google
+  or Apple sign-in makes the account; email accounts can no longer be made. Google goes
+  through the website's Lovable Cloud sign-in broker and comes back to
+  https://simplytk.com/auth, which an iOS 17.4+ auth session catches through the
+  `webcredentials:simplytk.com` associated domain (`src/lib/google.ts`), so it is iOS only.
+- **Openings, stars and the application tracker** are read straight from the website's
+  database (`jobs`, `companies`, `saved_jobs`, `applications`, `expected_openings`,
+  `opportunities`) under its row-level security. See `src/lib/tracker/queries.ts`,
+  `src/lib/applications/queries.ts` and `src/lib/openings/queries.ts`.
+- **The daily challenge, streak, leaderboards, league and push tokens** go through a few
+  routes on simplytk.com under `/api/app/`, described in [docs/app-api.md](docs/app-api.md).
+  Until the site serves them, those screens offer the website's page instead.
 
 ## What's in the app
 
-| Tab | Shows | Notes |
-| --- | --- | --- |
-| Home | `/dashboard` | The PWA's start page. Signed-out students get the sign-in screen. |
-| Tracker | `/internship-tracker` | Company pages, `/live` and `/expected-openings` deep-link here. |
-| Drills | Native list | All 35 drills from `/explore`. Native ones play in the app; the rest open their page. |
-| Progress | `/progress` | |
-| More | Native menu | AI tools, practice, mentoring, account settings, share, version. |
+| Tab | What it is |
+| --- | --- |
+| Home | Starred openings closing soonest, today's challenge with a Start button, the streak and the league place. |
+| Tracker | Every opening, filtered by firm, type, deadline and region, for university or pre-uni. Star one for its deadline alerts. Tapping an opening shows it with its apply link and a Track application button. |
+| Daily | Today's challenge: the website's set of questions, a clock, a big number pad, and a review afterwards. |
+| Ranks | The daily challenge’s player and university boards (today, month, all time) and the weekly league, with your own row pinned at the bottom. |
+| More | Native screens for My applications (move each one through its stages), Opening soon (when programmes usually open), the Live feed, Startup opportunities, the pre-uni tracker, My progress, OA prep, 1v1 challenges, the interview course and the AI tools (CV rater, cover letter, firm prep, mock interview, personal statement, study coach). Also drills, mentoring, guides, account settings and sign out; the pages without a native screen yet open in web views over the tabs. |
 
-The tabs follow the site's own mobile tab bar, which the app hides so there is only one,
-with Drills in place of Explore. Links to `/explore` still open the site's page.
-Tapping the open tab again scrolls to the top, and a second tap returns to the tab's start
-page. The Tracker tab loads in the background shortly after launch, so it opens instantly.
-Menu entries and links from outside the app open as a page pushed over the tabs, with
-share and open-in-browser buttons.
+The look follows Rohan's Orbit design system (mono kickers over two-tone titles, quiet
+hairline cards, one blue accent, tabular numbers) in simplytk's blue, light and dark.
 
-Behaviour inside the WebViews:
+The first star asks for notification permission, since alerts for starred openings are
+why the app exists. Tapping an alert opens the opening it is about.
+
+Behaviour inside the web views:
 
 - **Links.** simplytk.com, Supabase auth and Stripe stay in the app. Other sites (Calendly,
   firm career pages) open in an in-app browser sheet. Mail, phone, calendar subscriptions,
   WhatsApp, Instagram, LinkedIn, TikTok, YouTube, X and store links go to their apps. See
   `classifyUrl` in `src/lib/site.ts`.
-- **Theme.** On first launch the site follows the phone's light or dark setting, and the
-  native chrome follows whichever theme the site is showing.
-- **Signing in.** When a student signs in or out in one tab, the other tabs reload the
-  next time they are opened, so they stay in step.
+- **Signing in.** Web pages keep their own website sign-in for now (docs/app-api.md has the
+  endpoint that would hand them the app's session).
 - **Camera and microphone** permissions are set up for mock interviews, and file inputs
   work for CV uploads.
-- **Keyboard.** On Android the page is padded by however much the keyboard covers it, so
-  the field being typed in stays visible. Edge-to-edge Android apps don't get this for
-  free. iOS WebViews handle it themselves.
+- **Keyboard.** On Android the page is padded by however much the keyboard covers it.
 - **Back.** Swipe back on iOS. The hardware back button on Android goes back in page
   history before leaving the screen.
 - **Offline.** A "Can't reach simplytk" screen with a retry button, which also retries by
-  itself when the app comes back to the foreground. Pull to refresh on iOS.
-- **Sharing.** The site's Share buttons open the native share sheet, including on
-  Android, where WebViews have no Web Share API, and for the share-card image.
-- **Downloads.** WebViews can't save files a page generates (the add-to-calendar `.ics`,
-  the cover letter `.txt`, the share card). The app takes those files and opens the share
-  sheet, where they can be saved to Files or Photos or added to Calendar.
+  itself when the app comes back to the foreground.
+- **Sharing and downloads.** The site's Share buttons open the native share sheet, and files
+  a page generates (`.ics`, cover letters, share cards) are handed to the share sheet.
 - **Copy buttons** fall back to the system clipboard when the WebView refuses.
 
 ## How the website talks to the app
@@ -84,11 +87,13 @@ npm run lint
 npm test
 ```
 
-The tests cover the pure logic (link rules, deep-link mapping), the script injected into
-pages (run against a real DOM in jsdom), and the app itself: `src/__tests__/app.test.tsx`
-renders the real screens and router with a simulated WebView. It covers launch, tab
-loading, link handling, deep links, notification taps, the More menu, theme and sign-in
-sync, downloads, copy, push tokens, the retry screen and the Android back button.
+The tests cover the pure logic (link rules, deep-link mapping, deadlines and filters, daily
+answer marking and the keypad, leaderboard rows), the script injected into pages (run
+against a real DOM in jsdom), and the app itself: `src/__tests__/app.test.tsx` renders the
+real screens and router with Supabase, the site's endpoints and the WebView stubbed. It
+covers sign-in, Home, the tracker and stars, playing the daily challenge, the leaderboards,
+link handling, deep links, notification taps, the More menu, downloads, copy, push tokens,
+the retry screen and the Android back button.
 
 ## Build and release
 
@@ -106,7 +111,8 @@ Studio is needed.
 Accounts and credentials needed:
 
 - Apple Developer Program membership. EAS creates the certificates and the push key
-  when asked.
+  when asked. Turn on Sign in with Apple for `com.simplytk.app` (EAS does this from
+  `ios.usesAppleSignIn`) and add the Apple provider in Supabase Auth.
 - Google Play Console account.
 - For Android push, a Firebase project with
   [FCM V1 credentials uploaded to EAS](https://docs.expo.dev/push-notifications/fcm-credentials/).
@@ -131,42 +137,48 @@ Before the first store submission, work through
 
 ```
 src/app/                 Screens (Expo Router: every file is a route)
-  _layout.tsx            Root stack, theme, notification taps, splash
+  _layout.tsx            Root stack, sign-in gate, theme, notification taps, splash
+  sign-in.tsx            Email and password, phone code, Google, Sign in with Apple
   (tabs)/_layout.tsx     Native tab bar
-  (tabs)/index.tsx …     WebView tabs: Home, Tracker, Progress
-  (tabs)/drills.tsx      Native drill list
-  (tabs)/more.tsx        Native More menu
-  page.tsx               Any simplytk.com page pushed over the tabs
-  play/[slug].tsx        A native drill
-  +native-intent.tsx     Maps incoming links to the right tab or page
+  (tabs)/index.tsx       Home
+  (tabs)/tracker.tsx     Openings, filters, starred
+  (tabs)/daily.tsx       Today's challenge and the streak
+  (tabs)/ranks.tsx       Player and university boards, the weekly league
+  (tabs)/more.tsx        Everything else, as web pages
+  opening/[id].tsx       One opening with its apply link
+  challenge.tsx          Playing the daily challenge, full screen
+  drills.tsx             The drill list; play/[slug].tsx plays a native drill
+  page.tsx               Any simplytk.com page in a web view
+  +native-intent.tsx     Maps incoming links to the right screen
 src/components/
-  drills/                Native drills: drill-shell.tsx (clock, score, best) and one file
-                         per game; registry.ts lists them
+  ui.tsx                 The building blocks: title, card, button, chip, stat
+  opening-card.tsx       An opening in a list, with its star
+  number-pad.tsx         The daily challenge's keypad
+  streak-strip.tsx       The last seven days
+  drills/                Native drills on top of drill-shell.tsx
   site-webview.tsx       The WebView: link rules, bridge, errors, back button
-  tab-webview.tsx        Lazy-loads a tab's WebView and handles deep links into it
-src/hooks/
-  use-keyboard-overlap.ts  Keeps typed-in fields above the Android keyboard
-  use-notification-routing.ts  Opens the page a tapped notification links to
 src/lib/
-  drills/                Drill catalogue and question generators (pure, unit tested)
-  best-scores.ts         Personal bests, kept on the device
-  site.ts                Origin, link classification, title cleanup
-  routes.ts              Which tab owns which site section; deep-link mapping
+  supabase.ts, session.ts  The website's Supabase project and the signed-in student
+  site-api.ts            The website's /api/app endpoints (docs/app-api.md)
+  tracker/               Filters and deadlines (pure, tested) and the queries
+  stars.ts               Starred openings, shared by every screen
+  daily/                 Answer marking, keypad input and run recording (pure, tested);
+                         store.ts shares today's state, the streak and the league
+  leaderboard.ts         Pinned rows, league wording (pure, tested)
+  routes.ts              Deep-link and notification mapping
   bridge.ts              Script injected into pages, and message parsing
-  files.ts               Saves page downloads and opens the share sheet
-  push.ts                Notification permission and Expo push token
+  push.ts                Notification permission and the Expo push token
 src/__tests__/, src/lib/__tests__/   Tests (src/test/ holds the WebView stand-in)
-assets/images/           Icons and splash, drawn from simplytk's logo
 ```
 
 Common changes:
 
-- **A tab's page:** `TAB_HOME` in `src/lib/routes.ts`.
+- **Which site links open a native screen:** `NATIVE_SECTIONS` in `src/lib/routes.ts`.
 - **Which links open in the app:** `src/lib/site.ts`.
 - **The More menu:** `SECTIONS` in `src/app/(tabs)/more.tsx`.
 - **Porting a drill:** write the game in `src/components/drills/` on top of `DrillShell`,
   add it to `registry.ts`, and set `native: true` on it in `src/lib/drills/catalogue.ts`.
   Links to its simplytk.com page then open it in the app. The question ranges and clocks
   of the two native drills are guesses until they're aligned with the site's code.
-- **Colours:** `src/constants/theme.ts`. These are converted from the site's CSS tokens,
-  so change them together.
+- **Colours:** `src/constants/theme.ts`. Light is the site's own palette; dark follows
+  Orbit's midnight ground.

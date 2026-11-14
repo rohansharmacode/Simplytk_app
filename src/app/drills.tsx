@@ -1,21 +1,24 @@
 import { router, useFocusEffect } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { Fragment } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Pressable, StyleSheet, View } from 'react-native';
 
+import { Text } from '@/components/text';
+import { Screen, Title } from '@/components/ui';
 import { Radius, Spacing } from '@/constants/theme';
 import { usePalette } from '@/hooks/use-palette';
 import { DRILL_GROUPS, type Drill } from '@/lib/drills/catalogue';
 import { hideSplash } from '@/lib/splash';
+import { openSitePath } from '@/lib/web-pages';
 
 type Row = { title: string; blurb: string; slug: string; native?: true };
 
-/** Site pages that sit alongside the drills on simplytk.com/oa-prep. */
+/** Pages that sit alongside the drills on simplytk.com/oa-prep; most have a native screen. */
 const MORE_PRACTICE: Row[] = [
   { slug: 'oa-prep', title: 'Which test does my firm send?', blurb: 'Pick a firm and see the drills that train its test.' },
   { slug: 'oa-leaderboard', title: 'Overall leaderboard', blurb: 'The combined board across every ranked drill.' },
   { slug: '1v1', title: '1v1 challenge', blurb: 'Same drill, same questions, same clock as a friend.' },
+  { slug: 'interview-course', title: 'Interview course', blurb: 'Real interview questions, marked by an AI tutor.' },
   { slug: 'practice', title: 'Practice questions', blurb: 'Finance and brainteaser questions with instant feedback.' },
 ];
 
@@ -23,15 +26,12 @@ function open(row: Row | Drill) {
   if (row.native) {
     router.push({ pathname: '/play/[slug]', params: { slug: row.slug } });
   } else {
-    router.push({ pathname: '/page', params: { path: `/${row.slug}`, title: row.title } });
+    openSitePath(`/${row.slug}`, row.title);
   }
 }
 
 export default function DrillsScreen() {
   const palette = usePalette();
-  const insets = useSafeAreaInsets();
-  // iOS insets the scroll view automatically; Android tabs only handle the bottom edge.
-  const topInset = Platform.OS === 'android' ? insets.top : 0;
 
   // Opened straight from a simplytk://drills link there's no page load to wait for.
   useFocusEffect(hideSplash);
@@ -39,18 +39,12 @@ export default function DrillsScreen() {
   const sections = [...DRILL_GROUPS, { title: 'More practice', drills: MORE_PRACTICE }];
 
   return (
-    <ScrollView
-      style={{ backgroundColor: palette.background }}
-      contentContainerStyle={[styles.content, { paddingTop: topInset + Spacing.four }]}
-      contentInsetAdjustmentBehavior="automatic">
-      <View style={styles.header}>
-        <Text style={[styles.title, { color: palette.text }]} accessibilityRole="header">
-          Drills
-        </Text>
-        <Text style={[styles.subtitle, { color: palette.textSecondary }]}>
-          The tests firms actually set, on repeat. Drills marked Play run right here in the app.
-        </Text>
-      </View>
+    <Screen>
+      <Title
+        eyebrow="Practice"
+        title="Drills"
+        subtitle="The tests firms actually set, on repeat. Drills marked Play run right here in the app."
+      />
 
       {sections.map((section) => (
         <View key={section.title} style={styles.section}>
@@ -89,27 +83,11 @@ export default function DrillsScreen() {
           </View>
         </View>
       ))}
-    </ScrollView>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  content: {
-    padding: Spacing.four,
-    paddingBottom: Spacing.six,
-    gap: Spacing.five,
-  },
-  header: {
-    gap: Spacing.one,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '700',
-  },
-  subtitle: {
-    fontSize: 15,
-    lineHeight: 20,
-  },
   section: {
     gap: Spacing.two,
   },

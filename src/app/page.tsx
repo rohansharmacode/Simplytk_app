@@ -26,6 +26,10 @@ export default function PageScreen() {
       <Stack.Screen
         options={{
           title,
+          // A web page draws its own sticky header, which would slide under a see-through bar.
+          headerTransparent: false,
+          headerLargeTitleEnabled: false,
+          headerStyle: { backgroundColor: palette.background },
           headerRight: () => (
             <View style={styles.actions}>
               <HeaderButton

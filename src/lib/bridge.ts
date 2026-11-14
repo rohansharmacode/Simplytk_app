@@ -43,13 +43,24 @@ export type FileMessage = {
 export const MAX_FILE_BYTES = 20 * 1024 * 1024;
 
 /**
- * simplytk.com's mobile tab bar (`<nav aria-label="Primary" class="fixed … bottom-0">`) and
- * the body padding reserved for it. The site can do this itself with the
- * `html.simplytk-native-app` class, at which point this becomes a no-op.
+ * simplytk.com's mobile tab bar (`<nav aria-label="Primary" class="fixed … bottom-0">`), the
+ * body padding reserved for it, and the site's sticky top header
+ * (`<header class="sticky top-0 z-50 …">`, logo, search, Join and menu), which the app's own
+ * navigation bar replaces. The site can do this itself with the `html.simplytk-native-app`
+ * class, at which point this becomes a no-op.
+ *
+ * On iOS it also hides links to things for sale that the site's own purchase hiding misses
+ * (the playbook cards and paid downloads on /resources, which still show a price), since the
+ * App Store allows no purchase outside in-app purchase.
  */
 export const APP_CSS =
   'nav[aria-label="Primary"].fixed.bottom-0{display:none!important}' +
-  'body{padding-bottom:0!important}';
+  'body{padding-bottom:0!important}' +
+  'header.sticky.top-0.z-50{display:none!important}' +
+  'html.simplytk-native-ios a[href="/spring-week-playbook"],' +
+  'html.simplytk-native-ios a[href="/efds-playbook"],' +
+  'html.simplytk-native-ios a[href="/pricing"],' +
+  'html.simplytk-native-ios a[href*="stripe.com"]{display:none!important}';
 
 type BridgeConfig = {
   platform: string;

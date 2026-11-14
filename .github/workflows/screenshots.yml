@@ -1,0 +1,101 @@
+# Runs .maestro/tour.yaml on an iPhone simulator and pushes a screenshot of every screen to
+# the `screenshots` branch, so the app's look can be checked without a phone.
+# It runs when .maestro/app-url.txt changes: put the URL of an EAS simulator build
+# (`eas build -p ios --profile simulator`) on its first line and push, or the word `source`
+# to build the app from this commit on the runner (free; no EAS build used). Lines after the
+# first are notes, so editing one reruns the tour on the same build.
+# Needs the repository secrets MAESTRO_TEST_EMAIL and MAESTRO_TEST_PASSWORD (a test account).
+name: Screenshot tour
+
+on:
+  push:
+    paths: ['.maestro/app-url.txt']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  tour:
+    runs-on: macos-26
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Build the app for the simulator from this commit
+        run: |
+          if [ "$(head -1 .maestro/app-url.txt)" != "source" ]; then exit 0; fi
+          # SDK 58's Swift packages are built and tested with Xcode 27; Xcode 26.3's compiler rejects
+          # ExpoModulesJSI ("sending 'slot' risks causing data races"). Use the newest Xcode here.
+          ls -d /Applications/Xcode_*.app
+          export DEVELOPER_DIR="$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)/Contents/Developer"
+          echo "Building with $DEVELOPER_DIR"
+          npm ci
+          npx expo prebuild -p ios --no-install
+          (cd ios && pod install)
+          WORKSPACE=$(ls -d ios/*.xcworkspace | head -1)
+          SCHEME=$(basename "$WORKSPACE" .xcworkspace)
+          xcodebuild -workspace "$WORKSPACE" -scheme "$SCHEME" -configuration Release \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build CODE_SIGNING_ALLOWED=NO -quiet
+          mkdir -p app && cp -R build/Build/Products/Release-iphonesimulator/*.app app/
+
+      - name: Start an iPhone simulator and install the app
+        run: |
+          APP_URL=$(head -1 .maestro/app-url.txt)
+          if [ "$APP_URL" != "source" ]; then
+            curl -fsSL -o app.tar.gz "$APP_URL"
+            mkdir app && tar -xzf app.tar.gz -C app
+          fi
+          APP=$(find app -maxdepth 2 -name "*.app" | head -1)
+          xcrun simctl list runtimes
+          # Maestro's driver dropped the view hierarchy (HTTP 500) on iOS 26.2, so use a phone on the
+          # newest iOS runtime the runner has, falling back to any iPhone Pro.
+          NEWEST=$(xcrun simctl list devices available | grep -oE "^-- iOS [0-9.]+" | sort -V | tail -1 || true)
+          DEVICE=$(xcrun simctl list devices available | awk -v h="$NEWEST" '$0==h" --"{on=1;next} /^--/{on=0} on' | grep -E "iPhone 1[5-9] Pro \(" | head -1 | grep -oE "[0-9A-F-]{36}" || true)
+          [ -n "$DEVICE" ] || DEVICE=$(xcrun simctl list devices available | grep -E "iPhone 1[5-9] Pro \(" | head -1 | grep -oE "[0-9A-F-]{36}" || true)
+          [ -n "$DEVICE" ] || DEVICE=$(xcrun simctl list devices available | grep iPhone | head -1 | grep -oE "[0-9A-F-]{36}")
+          xcrun simctl list devices available | grep "$DEVICE"
+          xcrun simctl boot "$DEVICE"
+          xcrun simctl bootstatus "$DEVICE" -b
+          xcrun simctl install "$DEVICE" "$APP"
+
+      - name: Install Maestro
+        run: |
+          curl -fsSL -o maestro.zip "https://github.com/mobile-dev-inc/maestro/releases/latest/download/maestro.zip"
+          unzip -q maestro.zip -d "$HOME/maestro-dist"
+          echo "$HOME/maestro-dist/maestro/bin" >> "$GITHUB_PATH"
+
+      - name: Run the tour
+        env:
+          MAESTRO_TEST_EMAIL: ${{ secrets.MAESTRO_TEST_EMAIL }}
+          MAESTRO_TEST_PASSWORD: ${{ secrets.MAESTRO_TEST_PASSWORD }}
+          # The simulator's XCTest driver can take minutes to start on a cold runner.
+          MAESTRO_DRIVER_STARTUP_TIMEOUT: '240000'
+        run: |
+          mkdir -p shots
+          cd shots
+          # Maestro's simulator driver sometimes fails to start the first time, so try twice.
+          # When the driver crashes Maestro can hang instead of exiting, so cap each attempt. A full
+          # tour takes about 25 minutes on an iOS 26 simulator.
+          run() { limit=$1; shift; perl -e 'alarm shift; exec @ARGV' "$limit" maestro test "$@"; }
+          run 2700 ../.maestro/tour.yaml || run 2700 ../.maestro/tour.yaml || echo "The tour stopped early; see the log above."
+          # The main screens again in dark mode.
+          xcrun simctl ui booted appearance dark
+          run 900 ../.maestro/tour-dark.yaml || run 900 ../.maestro/tour-dark.yaml || echo "The dark tour stopped early; see the log above."
+
+      - name: Push the screenshots to the screenshots branch
+        if: always()
+        run: |
+          mkdir -p shots && cd shots
+          # Maestro saves screenshots in its own test folder, failure shots included.
+          find "$HOME/.maestro/tests" -name "*.png" -exec cp {} . \; 2>/dev/null || true
+          ls -la
+          git init -q -b screenshots
+          git add -A
+          git -c user.name="screenshot tour" -c user.email="actions@github.com" commit -q -m "Screenshots from run ${{ github.run_id }}" || exit 0
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" screenshots

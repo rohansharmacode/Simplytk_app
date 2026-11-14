@@ -1,0 +1,23 @@
+# Opens one screen by its simplytk:// link, screenshots it and its scrolled view, and goes back.
+# Env: LINK (app path without the leading slash) and NAME (screenshot name).
+appId: com.simplytk.app
+---
+- openLink: simplytk://${LINK}
+# iOS asks "Open in simplytk?" for each link.
+- waitForAnimationToEnd
+- tapOn:
+    text: 'Open'
+    optional: true
+- waitForAnimationToEnd:
+    timeout: 5000
+# Give web pages a few seconds to load (nothing ever shows this text).
+- extendedWaitUntil:
+    visible: 'wait-for-the-page-to-load'
+    timeout: 6000
+    optional: true
+- takeScreenshot: ${NAME}
+- scroll
+- takeScreenshot: ${NAME}-scrolled
+- tapOn:
+    point: 5%, 9%
+- waitForAnimationToEnd
