@@ -5,3 +5,4 @@ rerun: build on macos-26 with newest Xcode
 rerun: iOS 18 simulator, 20 min cap per attempt
 rerun: newest iOS runtime
 rerun: iOS 26 tab bar points, longer attempts
+rerun: hard top scroll edge
