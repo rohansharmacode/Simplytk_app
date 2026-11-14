@@ -32,6 +32,9 @@ jobs:
           npm ci
           npx expo prebuild -p ios --no-install
           (cd ios && pod install)
+          # Expo's Swift packages need Swift 6.2, so compile with the newest Xcode on the runner.
+          export DEVELOPER_DIR="$(ls -d /Applications/Xcode_26*.app | sort -V | tail -1)/Contents/Developer"
+          echo "Building with $DEVELOPER_DIR"
           WORKSPACE=$(ls -d ios/*.xcworkspace | head -1)
           SCHEME=$(basename "$WORKSPACE" .xcworkspace)
           xcodebuild -workspace "$WORKSPACE" -scheme "$SCHEME" -configuration Release \
