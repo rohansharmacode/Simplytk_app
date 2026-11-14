@@ -1,3 +1,1 @@
-https://expo.dev/artifacts/eas/Gwu6TZQhChidEdnplR3leQaTp09_RHnFTtV3_lPtdjQ.tar.gz
-rerun 2026-11-14T00:35:23Z: longer driver timeout
-rerun 2026-11-14T00:54:03Z: runner was slow
+https://expo.dev/artifacts/eas/xgxqoKd2rZuiKbrwQE1sM42MchfXSl1ZS37kSyRTqRw.tar.gz
