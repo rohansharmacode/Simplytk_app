@@ -44,11 +44,13 @@ jobs:
         env:
           MAESTRO_TEST_EMAIL: ${{ secrets.MAESTRO_TEST_EMAIL }}
           MAESTRO_TEST_PASSWORD: ${{ secrets.MAESTRO_TEST_PASSWORD }}
+          # The simulator's XCTest driver can take minutes to start on a cold runner.
+          MAESTRO_DRIVER_STARTUP_TIMEOUT: '240000'
         run: |
           mkdir -p shots
           cd shots
           # Maestro's simulator driver sometimes fails to start the first time, so try twice.
-          maestro test ../.maestro/tour.yaml || maestro test ../.maestro/tour.yaml || echo "The tour stopped early; see the log above."
+          maestro test ../.maestro/tour.yaml || maestro test ../.maestro/tour.yaml || maestro test ../.maestro/tour.yaml || echo "The tour stopped early; see the log above."
           # The main screens again in dark mode.
           xcrun simctl ui booted appearance dark
           maestro test ../.maestro/tour-dark.yaml || echo "The dark tour stopped early; see the log above."
