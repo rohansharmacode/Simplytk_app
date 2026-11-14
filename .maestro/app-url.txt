@@ -2,3 +2,4 @@ source
 # Built on the runner: the free EAS iOS builds for November are used up (2026-11-14).
 rerun 2026-11-14T02:17:18Z: build with Xcode 26
 rerun: build on macos-26 with newest Xcode
+rerun: iOS 18 simulator, 20 min cap per attempt

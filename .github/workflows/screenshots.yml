@@ -52,7 +52,10 @@ jobs:
             mkdir app && tar -xzf app.tar.gz -C app
           fi
           APP=$(find app -maxdepth 2 -name "*.app" | head -1)
-          DEVICE=$(xcrun simctl list devices available | grep -E "iPhone 1[5-9] Pro \(" | head -1 | grep -oE "[0-9A-F-]{36}")
+          xcrun simctl list runtimes
+          # Maestro's iOS 26 driver drops the view hierarchy mid-tour (HTTP 500), so prefer an iOS 18 phone.
+          DEVICE=$(xcrun simctl list devices available | awk '/^-- iOS 18/{on=1;next} /^--/{on=0} on' | grep -E "iPhone 1[5-9] Pro \(" | head -1 | grep -oE "[0-9A-F-]{36}")
+          [ -n "$DEVICE" ] || DEVICE=$(xcrun simctl list devices available | grep -E "iPhone 1[5-9] Pro \(" | head -1 | grep -oE "[0-9A-F-]{36}")
           [ -n "$DEVICE" ] || DEVICE=$(xcrun simctl list devices available | grep iPhone | head -1 | grep -oE "[0-9A-F-]{36}")
           xcrun simctl list devices available | grep "$DEVICE"
           xcrun simctl boot "$DEVICE"
@@ -75,18 +78,20 @@ jobs:
           mkdir -p shots
           cd shots
           # Maestro's simulator driver sometimes fails to start the first time, so try twice.
-          maestro test ../.maestro/tour.yaml || maestro test ../.maestro/tour.yaml || maestro test ../.maestro/tour.yaml || echo "The tour stopped early; see the log above."
+          # When the driver crashes Maestro can hang instead of exiting, so cap each attempt at 20 minutes.
+          run() { perl -e 'alarm shift; exec @ARGV' 1200 maestro test "$@"; }
+          run ../.maestro/tour.yaml || run ../.maestro/tour.yaml || run ../.maestro/tour.yaml || echo "The tour stopped early; see the log above."
           # The main screens again in dark mode.
           xcrun simctl ui booted appearance dark
-          maestro test ../.maestro/tour-dark.yaml || echo "The dark tour stopped early; see the log above."
-          # Maestro saves screenshots in its own test folder, failure shots included.
-          find "$HOME/.maestro/tests" -name "*.png" -exec cp {} . \;
-          ls -la
+          run ../.maestro/tour-dark.yaml || echo "The dark tour stopped early; see the log above."
 
       - name: Push the screenshots to the screenshots branch
         if: always()
         run: |
-          cd shots
+          mkdir -p shots && cd shots
+          # Maestro saves screenshots in its own test folder, failure shots included.
+          find "$HOME/.maestro/tests" -name "*.png" -exec cp {} . \; 2>/dev/null || true
+          ls -la
           git init -q -b screenshots
           git add -A
           git -c user.name="screenshot tour" -c user.email="actions@github.com" commit -q -m "Screenshots from run ${{ github.run_id }}" || exit 0
